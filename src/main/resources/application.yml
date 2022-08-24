@@ -1,0 +1,3 @@
+logging.file: ./data/logs/crawl.log
+rocketScrape:
+  apiKey: a8786555-59e6-4171-be58-804718a74a2a

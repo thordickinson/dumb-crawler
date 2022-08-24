@@ -1,0 +1,37 @@
+{
+  "type": "record",
+  "name": "WebPage",
+  "namespace": "com.thordickinson.webcrawler.storage.avro.schema",
+  "fields": [
+    {
+      "name": "url",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "int"
+    },
+    {
+      "name": "timestamp",
+      "type": "long"
+    },
+    {
+       "name": "length",
+       "type": "long"
+    },
+    {
+      "name": "contentType",
+      "type": "string"
+    },
+    {
+      "name": "language",
+      "type": "string",
+      "default": "en"
+    },
+    {
+      "name": "content",
+      "type": "string"
+    }
+  ]
+}
+

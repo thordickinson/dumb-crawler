@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <property name="LOG_FILE" value="./data/logs/application.log"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+    <root level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="CONSOLE" />
+    </root>
+    <logger name="com.thordickinson.webcrawler.rocketscrape.RocketScrapePageFetcher" level="DEBUG"/>
+    <logger name="com.thordickinson.webcrawler.DefaultCrawler.filter" level="DEBUG"/>
+</configuration>
