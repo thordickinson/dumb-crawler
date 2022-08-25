@@ -95,7 +95,7 @@ public class Operations {
         return new AbstractDecisionOperation("pattern") {
             @Override
             public boolean evaluate(Optional<Object> value, Optional<String> argument) {
-                return value.map(String::valueOf).flatMap(v -> argument.map(a -> v.matches(v))).orElseGet(() ->false);
+                return value.map(String::valueOf).flatMap(v -> argument.map(a -> v.matches(a))).orElseGet(() ->false);
             }
         };
     }

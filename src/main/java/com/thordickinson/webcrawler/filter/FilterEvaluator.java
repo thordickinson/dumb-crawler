@@ -21,7 +21,7 @@ public class FilterEvaluator {
     @Autowired
     private List<DecisionOperation> operations;
     private Map<String, DecisionOperation> operationIndex = Collections.emptyMap();
-    private final Decision DEFAULT_DECISION = Decision.REJECT;
+    private final Decision DEFAULT_DECISION = Decision.ACCEPT;
 
     @PostConstruct
     void initialize(){
@@ -36,7 +36,7 @@ public class FilterEvaluator {
     }
 
     private Optional<Object> getField(Object target, Optional<String> property) throws Exception {
-        return property.map(p ->
+        return property.flatMap(p ->
         {
             try {
                 return Optional.ofNullable(BeanUtils.getProperty(target, p));
