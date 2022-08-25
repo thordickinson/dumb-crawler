@@ -9,6 +9,7 @@ import com.thordickinson.webcrawler.api.CrawlingContext;
 import com.thordickinson.webcrawler.api.PageHandler;
 import com.thordickinson.webcrawler.api.PageValidator;
 import com.thordickinson.webcrawler.api.PrefetchInterceptor;
+import com.thordickinson.webcrawler.filter.FilterEvaluator;
 import com.thordickinson.webcrawler.util.ConfigurationException;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
@@ -19,7 +20,6 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -32,21 +32,21 @@ import java.util.stream.Collectors;
 public class CrawlerService {
 
     private static final Logger logger = LoggerFactory.getLogger(CrawlerService.class);
-    @Value("${crawler.job}")
-    private String job;
     @Autowired(required = false)
     private List<PrefetchInterceptor> prefetchInterceptors = Collections.emptyList();
     @Autowired(required = false)
     private List<PageValidator> pageValidators = Collections.emptyList();
     @Autowired(required = false)
     private List<PageHandler> pageHandlers = Collections.emptyList();
+    @Autowired
+    private FilterEvaluator evaluator;
 
-    public void crawl() throws Exception {
+    public void crawl(String job) throws Exception {
         var dataDir = "./data/jobs/%s".formatted(job);
         var jobConfig = loadJob(dataDir);
         CrawlConfig config = new CrawlConfig();
         config.setCrawlStorageFolder(dataDir + "/db");
-        var crawlingContext = new CrawlingContext(jobConfig, Path.of(dataDir), config);
+        var crawlingContext = new CrawlingContext(jobConfig, Path.of(dataDir), config, evaluator);
 
         int numberOfCrawlers = get(jobConfig, "threadCount").map(Any::toInt).orElseGet(() -> 3);
 

@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
 
-@Service
+//@Service
 public class AvroStorage implements PageHandler {
     private static Logger logger = LoggerFactory.getLogger(AvroStorage.class);
     private DatumWriter<WebPage> writer = null;

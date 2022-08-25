@@ -3,6 +3,9 @@ package com.thordickinson.webcrawler;
 import com.jsoniter.any.Any;
 import com.thordickinson.webcrawler.api.CrawlingContext;
 import com.thordickinson.webcrawler.api.PageHandler;
+import com.thordickinson.webcrawler.filter.Decider;
+import com.thordickinson.webcrawler.filter.Decision;
+import com.thordickinson.webcrawler.filter.FilterEvaluator;
 import com.thordickinson.webcrawler.util.JsonUtil;
 import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.crawler.WebCrawler;
@@ -24,30 +27,21 @@ public class DefaultCrawler extends WebCrawler {
     private final CrawlingContext crawlingContext;
     private final List<PageHandler> pageHandlers;
     private final Logger filterLogger = LoggerFactory.getLogger(DefaultCrawler.class.getName() + ".filter");
-    private final List<Pattern> whiteListPatterns;
-    private final List<Pattern> blackListPatterns;
+
+    private final List<Decider> filters;
 
     public DefaultCrawler(CrawlingContext crawlingContext, List<PageHandler> pageHandlers) {
         this.crawlingContext = crawlingContext;
         this.pageHandlers = pageHandlers;
-        whiteListPatterns = getPatternList(crawlingContext, "crawler.filter.whitelist");
-        blackListPatterns = getPatternList(crawlingContext, "crawler.filter.blacklist");
-    }
-
-    private List<Pattern> getPatternList(CrawlingContext crawlingContext, String path){
-        return JsonUtil.get(crawlingContext.getJobConfig(), path)
-                .map(Any::asList).orElseGet(() -> Collections.emptyList())
-                .stream().map(Any::toString).map(Pattern::compile).collect(Collectors.toList());
+        filters = JsonUtil.get(crawlingContext.getJobConfig(), "crawler.filters")
+                .map(Decider::fromJSONArray).orElseGet(Collections::emptyList);
     }
 
     @Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
-        String href = url.getURL().toLowerCase();
-        var whitelisted = whiteListPatterns.stream().map(p -> p.matcher(href).matches()).reduce((a, b) -> a || b ).orElseGet(() -> true);
-        var blacklisted = blackListPatterns.stream().map(p -> p.matcher(href).matches()).reduce((a, b) -> a || b).orElseGet(() -> false);
-        var shouldVisit = whitelisted && !blacklisted;
-        filterLogger.debug("Accepted {}: {} - Whitelisted: {}, Blacklisted: {}", shouldVisit, href, whitelisted, blacklisted);
-        return shouldVisit;
+        var result = crawlingContext.evaluateFilter(this.filters, url);
+        filterLogger.debug("Fetcher {}: {}", result, url.getURL());
+        return result == Decision.ACCEPT;
     }
 
     @Override

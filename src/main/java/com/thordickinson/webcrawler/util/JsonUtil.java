@@ -14,7 +14,24 @@ public class JsonUtil {
     public static Optional<Any> get(Any json, String key) {
         return get(json, Arrays.asList(key.split("\\.")));
     }
+    public static Optional<String> getStr(Any json, String key){
+        return get(json, key).map(Any::toString).flatMap( s -> "".equals(s)? Optional.empty() : Optional.of(s));
+    }
 
+
+    public static Optional<Integer> getInt(Any json, String key){
+        return get(json, key).map(Any::toInt);
+    }
+
+
+    public static Optional<Long> getLong(Any json, String key){
+        return get(json, key).map(Any::toLong);
+    }
+
+
+    public static Optional<Double> getDouble(Any json, String key){
+        return get(json, key).map(Any::toDouble);
+    }
     public static Optional<Any> get(Any json, List<String> path){
         if(path.isEmpty()) return Optional.of(json);
         var next = path.get(0);
