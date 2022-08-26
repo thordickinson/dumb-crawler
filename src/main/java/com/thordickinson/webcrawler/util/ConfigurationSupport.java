@@ -26,16 +26,19 @@ public class ConfigurationSupport {
 
 
     public ConfigurationSupport(String handlerKey) {
-        this.handlerKey = handlerKey;
+        this.handlerKey = handlerKey.intern();
     }
 
-    private void ensureInitialized(CrawlingContext context){
-        if(initialized) return;
-        var jobConfig = context.getJobConfig();
-        enabled = get(jobConfig, handlerKey).isPresent();
-        filters = getList(context.getJobConfig(), handlerKey + ".filters").stream().map(Decider::fromJSON).collect(Collectors.toList());
-        configuration = get(jobConfig, handlerKey + ".config").map(Any::asMap).orElseGet(Collections::emptyMap);
-        initialized = true;
+    public void ensureInitialized(CrawlingContext context){
+        if (initialized) return;
+        synchronized (this.handlerKey) {
+            if (initialized) return;
+            var jobConfig = context.getJobConfig();
+            enabled = get(jobConfig, handlerKey).isPresent();
+            filters = getList(context.getJobConfig(), handlerKey + ".filters").stream().map(Decider::fromJSON).collect(Collectors.toList());
+            configuration = get(jobConfig, handlerKey + ".config").map(Any::asMap).orElseGet(Collections::emptyMap);
+            initialized = true;
+        }
     }
 
     public boolean shouldProceed(Page page, CrawlingContext ctx){
@@ -47,6 +50,10 @@ public class ConfigurationSupport {
     }
 
     public boolean shouldProceed(WebURL url, CrawlingContext ctx){
+        return shouldProceed(url.getURL(), ctx);
+    }
+
+    public boolean shouldProceed(String url, CrawlingContext ctx){
         ensureInitialized(ctx);
         if (!isEnabled()) return false;
         var result = ctx.evaluateFilter(getFilters(), url);

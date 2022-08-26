@@ -5,10 +5,7 @@ import com.jsoniter.any.Any;
 
 import static com.thordickinson.webcrawler.util.JsonUtil.*;
 
-import com.thordickinson.webcrawler.api.CrawlingContext;
-import com.thordickinson.webcrawler.api.PageHandler;
-import com.thordickinson.webcrawler.api.PageValidator;
-import com.thordickinson.webcrawler.api.PrefetchInterceptor;
+import com.thordickinson.webcrawler.api.*;
 import com.thordickinson.webcrawler.filter.FilterEvaluator;
 import com.thordickinson.webcrawler.util.ConfigurationException;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
@@ -22,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,20 +36,24 @@ public class CrawlerService {
     private List<PageValidator> pageValidators = Collections.emptyList();
     @Autowired(required = false)
     private List<PageHandler> pageHandlers = Collections.emptyList();
+    @Autowired(required = false)
+    private List<URLTransformer> urlTransformers = Collections.emptyList();
     @Autowired
     private FilterEvaluator evaluator;
+
+    private CrawlingContext crawlingContext;
 
     public void crawl(String job) throws Exception {
         var dataDir = "./data/jobs/%s".formatted(job);
         var jobConfig = loadJob(dataDir);
         CrawlConfig config = new CrawlConfig();
         config.setCrawlStorageFolder(dataDir + "/db");
-        var crawlingContext = new CrawlingContext(jobConfig, Path.of(dataDir), config, evaluator);
+        crawlingContext = new CrawlingContext(jobConfig, Path.of(dataDir), config, evaluator);
 
         int numberOfCrawlers = get(jobConfig, "threadCount").map(Any::toInt).orElseGet(() -> 3);
 
         // Instantiate the controller for this crawl.
-        PageFetcher pageFetcher = new GenericFetcher(crawlingContext, prefetchInterceptors, pageValidators);
+        PageFetcher pageFetcher = new GenericFetcher(crawlingContext, prefetchInterceptors, pageValidators, urlTransformers);
         RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
         RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
         CrawlController controller = new CrawlController(config, pageFetcher, robotstxtServer);
@@ -82,6 +84,17 @@ public class CrawlerService {
             return JsonIterator.deserialize(Files.readAllBytes(Path.of(configFile)));
         } catch (IOException ex) {
             throw new ConfigurationException("Error reading config file: " + configFile, ex);
+        }
+    }
+
+    @PreDestroy
+    void preDestroy(){
+        logger.info("Counters");
+        if(crawlingContext != null){
+            Set<String> counters = crawlingContext.getCounterKeys();
+            for(var counter : counters){
+                logger.info("{} : {}", counter, crawlingContext.getCounter(counter));
+            }
         }
     }
 }

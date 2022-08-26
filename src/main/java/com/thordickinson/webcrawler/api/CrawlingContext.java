@@ -5,12 +5,16 @@ import com.thordickinson.webcrawler.api.filter.FilterPage;
 import com.thordickinson.webcrawler.filter.Decider;
 import com.thordickinson.webcrawler.filter.Decision;
 import com.thordickinson.webcrawler.filter.FilterEvaluator;
+import com.thordickinson.webcrawler.util.MutableInteger;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.url.WebURL;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CrawlingContext {
     private final String executionId;
@@ -18,6 +22,7 @@ public class CrawlingContext {
     private final Path jobDir;
     private final CrawlConfig config;
     private final FilterEvaluator evaluator;
+    private final Map<String, MutableInteger> counters = new ConcurrentHashMap<>();
 
     public CrawlingContext(Any jobConfig, Path jobDir, CrawlConfig config, FilterEvaluator evaluator) {
         this.jobConfig = jobConfig;
@@ -33,6 +38,28 @@ public class CrawlingContext {
 
     public Decision evaluateFilter(List<Decider> deciders, WebURL page){
         return evaluator.evaluate(deciders, FilterPage.fromUri(page));
+    }
+
+    public Decision evaluateFilter(List<Decider> deciders, String url){
+        return evaluator.evaluate(deciders, FilterPage.fromUri(url));
+    }
+
+    public int increaseCounter(String key){
+        MutableInteger initValue = new MutableInteger(1);
+        MutableInteger oldValue = counters.put(key, initValue);
+
+        if (oldValue != null) {
+            initValue.set(oldValue.get() + 1);
+        }
+        return initValue.get();
+    }
+
+    public int getCounter(String key) {
+        return counters.getOrDefault(key, new MutableInteger(0)).get();
+    }
+
+    public Set<String> getCounterKeys(){
+        return counters.keySet();
     }
 
     public String getExecutionId() {

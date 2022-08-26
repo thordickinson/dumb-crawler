@@ -8,6 +8,8 @@
         <appender-ref ref="FILE" />
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="com.thordickinson.webcrawler.rocketscrape.RocketScrapePageFetcher" level="DEBUG"/>
-    <logger name="com.thordickinson.webcrawler.DefaultCrawler.filter" level="DEBUG"/>
+    <logger name="com.thordickinson.webcrawler.DefaultCrawler.filter" level="INFO"/>
+    <logger name="com.thordickinson.webcrawler.storage.WARCStorage.filter" level="DEBUG"/>
+    <logger name="com.thordickinson.webcrawler.storage.WARCStorage" level="DEBUG"/>
+    <logger name="com.thordickinson.webcrawler.rocketscrape.RocketScrapeURLTransformer" level="DEBUG"/>
 </configuration>

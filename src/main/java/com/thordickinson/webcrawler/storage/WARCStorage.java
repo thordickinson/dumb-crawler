@@ -24,7 +24,7 @@ public class WARCStorage extends AbstractFilteredPageHandler {
     private WarcWriter writer;
 
     public WARCStorage(){
-        super("warcStore");
+        super("warcStorage");
     }
 
     private WarcWriter createWriter(CrawlingContext context) throws IOException {
@@ -50,6 +50,8 @@ public class WARCStorage extends AbstractFilteredPageHandler {
     public void handleFilteredPage(Page page, CrawlingContext context) throws Exception {
         WarcWriter writer = getWriter(context);
         String url = page.getWebURL().getURL().toLowerCase();
+        context.increaseCounter("storedPages");
+        logger.debug("Saving page to warc file: {}", url);
         WarcResponse response =  new WarcResponse.Builder(url)
                 .body(MediaType.parse(page.getContentType()), page.getContentData())
                 .date(Instant.now())
