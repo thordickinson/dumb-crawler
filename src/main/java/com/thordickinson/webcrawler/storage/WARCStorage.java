@@ -56,7 +56,9 @@ public class WARCStorage extends AbstractFilteredPageHandler {
                 .body(MediaType.parse(page.getContentType()), page.getContentData())
                 .date(Instant.now())
                 .build();
-        writer.write(response);
+        synchronized (writer){
+            writer.write(response);
+        }
     }
 
     @PreDestroy
