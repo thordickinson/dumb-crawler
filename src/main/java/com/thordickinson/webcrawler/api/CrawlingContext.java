@@ -21,15 +21,17 @@ public class CrawlingContext {
     private final Any jobConfig;
     private final Path jobDir;
     private final CrawlConfig config;
+    private final Path executionDir;
     private final FilterEvaluator evaluator;
     private final Map<String, MutableInteger> counters = new ConcurrentHashMap<>();
 
-    public CrawlingContext(Any jobConfig, Path jobDir, CrawlConfig config, FilterEvaluator evaluator) {
+    public CrawlingContext(String executionId, Any jobConfig, Path jobDir, CrawlConfig config, FilterEvaluator evaluator) {
         this.jobConfig = jobConfig;
         this.evaluator = evaluator;
-        this.executionId = String.valueOf(System.currentTimeMillis());
+        this.executionId = executionId;
         this.jobDir = jobDir;
         this.config = config;
+        executionDir = getJobDir().resolve("executions").resolve(executionId);
     }
 
     public Decision evaluateFilter(List<Decider> deciders, Page page){
@@ -76,5 +78,9 @@ public class CrawlingContext {
 
     public Path getJobDir() {
         return jobDir;
+    }
+
+    public Path getExecutionDir() {
+        return executionDir;
     }
 }

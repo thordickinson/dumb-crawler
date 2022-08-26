@@ -31,4 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
-data/
+data/jobs/*/executions/
+data/logs/

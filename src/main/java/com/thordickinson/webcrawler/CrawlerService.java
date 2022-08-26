@@ -44,11 +44,12 @@ public class CrawlerService {
     private CrawlingContext crawlingContext;
 
     public void crawl(String job) throws Exception {
-        var dataDir = "./data/jobs/%s".formatted(job);
-        var jobConfig = loadJob(dataDir);
+        String executionId = String.valueOf(System.currentTimeMillis());
+        var jobDir = Path.of("./data/jobs").resolve(job);
+        var jobConfig = loadJob(jobDir);
         CrawlConfig config = new CrawlConfig();
-        config.setCrawlStorageFolder(dataDir + "/db");
-        crawlingContext = new CrawlingContext(jobConfig, Path.of(dataDir), config, evaluator);
+        crawlingContext = new CrawlingContext(executionId, jobConfig, jobDir, config, evaluator);
+        config.setCrawlStorageFolder(crawlingContext.getExecutionDir().resolve("db").toString());
 
         int numberOfCrawlers = get(jobConfig, "threadCount").map(Any::toInt).orElseGet(() -> 3);
 
@@ -74,25 +75,25 @@ public class CrawlerService {
     }
 
     private Set<String> getSeeds(Any jobConfig) {
-        return get(jobConfig,"seeds").map(Any::asList).map(l -> l.stream().map(Any::toString).collect(Collectors.toSet()))
+        return get(jobConfig, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString).collect(Collectors.toSet()))
                 .orElseThrow(() -> new ConfigurationException("Seeds are required"));
     }
 
-    private Any loadJob(String dataDir){
-        var configFile = dataDir + "/job.json";
+    private Any loadJob(Path dataDir) {
+        var configFile = dataDir.resolve("job.json");
         try {
-            return JsonIterator.deserialize(Files.readAllBytes(Path.of(configFile)));
+            return JsonIterator.deserialize(Files.readAllBytes(configFile));
         } catch (IOException ex) {
             throw new ConfigurationException("Error reading config file: " + configFile, ex);
         }
     }
 
     @PreDestroy
-    void preDestroy(){
+    void preDestroy() {
         logger.info("Counters");
-        if(crawlingContext != null){
+        if (crawlingContext != null) {
             Set<String> counters = crawlingContext.getCounterKeys();
-            for(var counter : counters){
+            for (var counter : counters) {
                 logger.info("{} : {}", counter, crawlingContext.getCounter(counter));
             }
         }

@@ -1,0 +1,45 @@
+{
+  "seeds": [
+    "https://www.ics.uci.edu/~lopes/",
+    "https://www.ics.uci.edu/~welling/",
+    "https://www.ics.uci.edu/"
+  ],
+  "threadCount": 3,
+  "warcStorage": {
+    "filters": [
+      { "action": "reject" },
+      { "action": "accept", "field":  "contentType", "operator":  "contains", "argument":  "text/html"}
+    ]
+  },
+  "rocketScrape": {
+    "filters": [
+      { "action":  "reject"},
+      { "action":  "reject",
+        "field": "uri.host", "operator": "contains", "argument": "informatics"
+      }
+    ],
+    "config": {
+      "apiKey": "a8786555-59e6-4171-be58-804718a74a2a"
+    }
+  },
+  "crawler": {
+    "filters": [
+      {"action":  "reject"},
+      {
+        "field":  "uri.host",
+        "operator": "contains",
+        "argument": ".edu",
+        "action": "accept"
+      },{
+        "field": "uri.path",
+        "operator": "pattern",
+        "argument": ".*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$",
+        "action": "reject"
+      }
+    ]
+  },
+  "config": {
+    "rocketScrape": { "whitelist" : ".*" }
+  }
+
+}
