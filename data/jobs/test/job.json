@@ -38,8 +38,13 @@
       }
     ]
   },
-  "config": {
-    "rocketScrape": { "whitelist" : ".*" }
+  "stopper": {
+    "config": {
+      "timeout": 10
+    },
+    "filters": [
+      {"action": "reject"}
+    ]
   }
 
 }

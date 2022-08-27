@@ -9,6 +9,8 @@ import com.thordickinson.webcrawler.util.MutableInteger;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.url.WebURL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -24,6 +26,8 @@ public class CrawlingContext {
     private final Path executionDir;
     private final FilterEvaluator evaluator;
     private final Map<String, MutableInteger> counters = new ConcurrentHashMap<>();
+
+    private static final Logger counterLogger = LoggerFactory.getLogger(CrawlingContext.class.getName() + ".counters");
 
     public CrawlingContext(String executionId, Any jobConfig, Path jobDir, CrawlConfig config, FilterEvaluator evaluator) {
         this.jobConfig = jobConfig;
@@ -53,7 +57,16 @@ public class CrawlingContext {
         if (oldValue != null) {
             initValue.set(oldValue.get() + 1);
         }
+        displayCounter(key, initValue);
         return initValue.get();
+    }
+
+    private void displayCounter(String name, MutableInteger counter){
+        var now = System.currentTimeMillis();
+        if(now > (counter.getLastDisplayTime() + 10000)){
+            counterLogger.info("Counter increased: {}: {} ", name, counter.get() );
+            counter.setLastDisplayTime(now);
+        }
     }
 
     public int getCounter(String key) {

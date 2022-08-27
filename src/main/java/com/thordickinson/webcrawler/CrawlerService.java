@@ -40,9 +40,11 @@ public class CrawlerService {
     private List<URLTransformer> urlTransformers = Collections.emptyList();
     @Autowired
     private FilterEvaluator evaluator;
+    private CrawlController crawlController;
 
     private CrawlingContext crawlingContext;
 
+    //TODO: need to define a mechanism to stop crawling
     public void crawl(String job) throws Exception {
         String executionId = String.valueOf(System.currentTimeMillis());
         var jobDir = Path.of("./data/jobs").resolve(job);
@@ -57,13 +59,13 @@ public class CrawlerService {
         PageFetcher pageFetcher = new GenericFetcher(crawlingContext, prefetchInterceptors, pageValidators, urlTransformers);
         RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
         RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
-        CrawlController controller = new CrawlController(config, pageFetcher, robotstxtServer);
+        crawlController = new CrawlController(config, pageFetcher, robotstxtServer);
 
         var seeds = getSeeds(jobConfig);
         if (seeds.isEmpty()) throw new IllegalArgumentException("Crawl job must have at least one seed");
         getSeeds(jobConfig).forEach(s -> {
             logger.info("Adding url seed: {}", s);
-            controller.addSeed(s);
+            crawlController.addSeed(s);
         });
 
         // The factory which creates instances of crawlers.
@@ -71,7 +73,13 @@ public class CrawlerService {
 
         // Start the crawl. This is a blocking operation, meaning that your code
         // will reach the line after this only when crawling is finished.
-        controller.start(factory, numberOfCrawlers);
+        crawlController.start(factory, numberOfCrawlers);
+    }
+
+    public void stopCrawler(){
+        if(crawlController != null){
+            crawlController.shutdown();
+        }
     }
 
     private Set<String> getSeeds(Any jobConfig) {

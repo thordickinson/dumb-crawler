@@ -2,6 +2,7 @@ package com.thordickinson.webcrawler.util;
 
 public class MutableInteger {
     private int val;
+    private long lastDisplayTime = 0;
 
     public MutableInteger(int val) {
         this.val = val;
@@ -13,6 +14,14 @@ public class MutableInteger {
 
     public void set(int val) {
         this.val = val;
+    }
+
+    public long getLastDisplayTime() {
+        return lastDisplayTime;
+    }
+
+    public void setLastDisplayTime(long lastDisplayTime) {
+        this.lastDisplayTime = lastDisplayTime;
     }
 
     @Override

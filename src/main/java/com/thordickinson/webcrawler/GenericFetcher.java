@@ -14,14 +14,20 @@ import org.apache.http.client.methods.HttpUriRequest;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GenericFetcher extends PageFetcher {
 
+    private static final PageFetchResult ERROR = new PageFetchResult();
+    static {
+        ERROR.setStatusCode(500);
+    }
     private final CrawlingContext context;
     private final List<PrefetchInterceptor> prefetchInterceptors;
     private final List<PageValidator> pageValidators;
 
     private final List<URLTransformer> urlTransformers;
+    private AtomicBoolean isStopped = new AtomicBoolean(false);
 
     public GenericFetcher(CrawlingContext context, List<PrefetchInterceptor> interceptors,
                           List<PageValidator> pageValidators, List<URLTransformer> urlTransformers) {
@@ -69,6 +75,14 @@ public class GenericFetcher extends PageFetcher {
         return result;
     }
 
+
+    @Override
+    public synchronized void shutDown() {
+        this.isStopped.set(true);
+        super.shutDown();
+    }
+
+
     public PageFetchResult fetchPage(WebURL webUrl)
             throws InterruptedException, IOException, PageBiggerThanMaxSizeException {
         // Getting URL, setting headers & content
@@ -89,6 +103,7 @@ public class GenericFetcher extends PageFetcher {
                 }
             }
 
+            if(isStopped.get()) return ERROR;
             CloseableHttpResponse response = httpClient.execute(request);
             fetchResult.setEntity(response.getEntity());
             fetchResult.setResponseHeaders(response.getAllHeaders());
