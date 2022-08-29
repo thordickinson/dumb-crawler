@@ -30,7 +30,7 @@ public class GenericFetcher extends PageFetcher {
     private AtomicBoolean isStopped = new AtomicBoolean(false);
 
     public GenericFetcher(CrawlingContext context, List<PrefetchInterceptor> interceptors,
-                          List<PageValidator> pageValidators, List<URLTransformer> urlTransformers) {
+            List<PageValidator> pageValidators, List<URLTransformer> urlTransformers) {
         super(context.getConfig());
         this.context = context;
         this.prefetchInterceptors = interceptors;
@@ -38,8 +38,8 @@ public class GenericFetcher extends PageFetcher {
         this.urlTransformers = urlTransformers;
     }
 
-
-    public PageFetchResult intercept(WebURL webUrl) throws InterruptedException, IOException, PageBiggerThanMaxSizeException {
+    public PageFetchResult intercept(WebURL webUrl)
+            throws InterruptedException, IOException, PageBiggerThanMaxSizeException {
         var originalUrl = webUrl.getURL();
         for (var interceptor : prefetchInterceptors) {
             interceptor.intercept(webUrl, context);
@@ -47,8 +47,7 @@ public class GenericFetcher extends PageFetcher {
         PageFetchResult result = null;
         int attempt = 0;
         PageValidationResult lastAction = PageValidationResult.EMPTY;
-        loop:
-        do {
+        loop: do {
             attempt++;
             result = super.fetchPage(webUrl);
             result.setFetchedUrl(originalUrl);
@@ -69,19 +68,17 @@ public class GenericFetcher extends PageFetcher {
 
     private String getUrlToFetch(WebURL url) {
         String result = url.getURL();
-        for(URLTransformer transformer : urlTransformers){
+        for (URLTransformer transformer : urlTransformers) {
             result = transformer.transform(result, context);
         }
         return result;
     }
-
 
     @Override
     public synchronized void shutDown() {
         this.isStopped.set(true);
         super.shutDown();
     }
-
 
     public PageFetchResult fetchPage(WebURL webUrl)
             throws InterruptedException, IOException, PageBiggerThanMaxSizeException {
@@ -103,7 +100,8 @@ public class GenericFetcher extends PageFetcher {
                 }
             }
 
-            if(isStopped.get()) return ERROR;
+            if (isStopped.get())
+                return ERROR;
             CloseableHttpResponse response = httpClient.execute(request);
             fetchResult.setEntity(response.getEntity());
             fetchResult.setResponseHeaders(response.getAllHeaders());
@@ -122,8 +120,7 @@ public class GenericFetcher extends PageFetcher {
 
                 Header header = response.getFirstHeader("Location");
                 if (header != null) {
-                    String movedToUrl =
-                            URLCanonicalizer.getCanonicalURL(header.getValue(), toFetchURL);
+                    String movedToUrl = URLCanonicalizer.getCanonicalURL(header.getValue(), toFetchURL);
                     fetchResult.setMovedToUrl(movedToUrl);
                 }
             } else if (statusCode >= 200 && statusCode <= 299) { // is 2XX, everything looks ok
@@ -148,15 +145,16 @@ public class GenericFetcher extends PageFetcher {
                         }
                     }
                     if (size > config.getMaxDownloadSize()) {
-                        //fix issue #52 - consume entity
+                        // fix issue #52 - consume entity
                         response.close();
                         throw new PageBiggerThanMaxSizeException(size);
                     }
                 }
+                context.increaseCounter("fetchedPages");
             }
 
+            context.increaseCounter("fetchAttempts");
             fetchResult.setStatusCode(statusCode);
-            context.increaseCounter("fetchedPages");
             return fetchResult;
 
         } finally { // occurs also with thrown exceptions
@@ -165,6 +163,5 @@ public class GenericFetcher extends PageFetcher {
             }
         }
     }
-
 
 }

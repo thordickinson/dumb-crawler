@@ -5,32 +5,29 @@
     "https://www.ics.uci.edu/"
   ],
   "threadCount": 3,
-  "warcStorage": {
-    "filters": [
-      { "action": "reject" },
-      { "action": "accept", "field":  "contentType", "operator":  "contains", "argument":  "text/html"}
-    ]
-  },
+  "orcStorage": {},
   "rocketScrape": {
     "filters": [
-      { "action":  "reject"},
-      { "action":  "reject",
-        "field": "uri.host", "operator": "contains", "argument": "informatics"
+      {
+        "action": "reject"
       }
     ],
     "config": {
-      "apiKey": "a8786555-59e6-4171-be58-804718a74a2a"
+      "apiKey": "xx"
     }
   },
   "crawler": {
     "filters": [
-      {"action":  "reject"},
       {
-        "field":  "uri.host",
+        "action": "reject"
+      },
+      {
+        "field": "uri.host",
         "operator": "contains",
         "argument": ".edu",
         "action": "accept"
-      },{
+      },
+      {
         "field": "uri.path",
         "operator": "pattern",
         "argument": ".*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$",
@@ -43,8 +40,9 @@
       "timeout": 10
     },
     "filters": [
-      {"action": "reject"}
+      {
+        "action": "accept"
+      }
     ]
   }
-
 }

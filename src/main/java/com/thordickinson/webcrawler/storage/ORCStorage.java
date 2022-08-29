@@ -18,6 +18,7 @@ import org.apache.orc.TypeDescription;
 import org.apache.orc.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.github.slugify.Slugify;
 import com.thordickinson.webcrawler.api.AbstractFilteredPageHandler;
@@ -64,18 +65,26 @@ class OrcPageWriter {
         contentColumn.setVal(rowNum, page.getContentData());
 
         if (batch.size == batch.getMaxSize()) {
-            writer.addRowBatch(batch);
+            addRowBatch();
             batch.reset();
+        }
+    }
+
+    private void addRowBatch() throws IOException {
+        if (batch.size > 0) {
+            writer.addRowBatch(batch);
         }
     }
 
     public void close() throws IOException {
         if (writer != null) {
+            addRowBatch();
             writer.close();
         }
     }
 }
 
+@Service
 public class ORCStorage extends AbstractFilteredPageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ORCStorage.class);
@@ -103,6 +112,10 @@ public class ORCStorage extends AbstractFilteredPageHandler {
         context.increaseCounter("storedPages");
         var writer = getWriter(context);
         writer.write(page);
+    }
+
+    @Override
+    protected void onPageRejected(Page page, CrawlingContext ctx) {
     }
 
     @PreDestroy

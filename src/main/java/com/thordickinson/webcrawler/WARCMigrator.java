@@ -41,7 +41,7 @@ public class WARCMigrator {
     }
 
     public void read(String path) throws IOException {
-        Path root = Path.of("./data/jobs/meli/executions/%s/warc".formatted(path));
+        Path root = Path.of("./data/jobs/test/executions/%s/orc".formatted(path));
         var rootDir = root.toFile();
         for (var file : rootDir.listFiles()) {
             if (file.getName().endsWith(".orc")) {
@@ -72,10 +72,9 @@ public class WARCMigrator {
                 while (records.nextBatch(batch)) {
                     for (int rowNum = 0; rowNum < batch.size; rowNum++) {
                         var url = urlColumn.toString(rowNum);
-                        var uri = URI.create(url);
-                        System.out.println(uri.getHost());
+                        var content = contentColumn.toString(rowNum);
                         consumer.accept(
-                                List.of(timestampColumn.asScratchTimestamp(rowNum), url));
+                                List.of(timestampColumn.asScratchTimestamp(rowNum), url, content.length()));
                     }
                 }
             }
@@ -127,6 +126,6 @@ public class WARCMigrator {
 
     public static void main(String[] args) throws IOException {
         // new WARCMigrator().migrate("1661552637911");
-        new WARCMigrator().read("1661552637911");
+        new WARCMigrator().read("1661784612252");
     }
 }

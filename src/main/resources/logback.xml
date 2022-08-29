@@ -11,5 +11,6 @@
     <logger name="com.thordickinson.webcrawler.DefaultCrawler.filter" level="INFO"/>
     <logger name="com.thordickinson.webcrawler.storage.WARCStorage.filter" level="DEBUG"/>
     <logger name="com.thordickinson.webcrawler.storage.WARCStorage" level="DEBUG"/>
+    <logger name="com.thordickinson.webcrawler.storage.ORCStorage.filter" level="ALL"/>
     <logger name="com.thordickinson.webcrawler.rocketscrape.RocketScrapeURLTransformer" level="DEBUG"/>
 </configuration>
