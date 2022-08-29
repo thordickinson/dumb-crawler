@@ -3,30 +3,53 @@
     "https://vehiculos.mercadolibre.com.co/"
   ],
   "threadCount": 10,
-  "warcStorage": {
+  "orcStorage": {
     "filters": [
-      { "action": "reject" },
-      { "action": "accept", "field":  "uri.path", "operator":  "pattern", "argument":  "^\/(MCO|mco)-[0-9]+.*"}
+      {
+        "action": "reject"
+      },
+      {
+        "action": "accept",
+        "field": "uri.path",
+        "operator": "pattern",
+        "argument": "^\/(MCO|mco)-[0-9]+.*"
+      }
     ]
   },
   "rocketScrape": {
     "filters": [
-      { "action":  "reject"},
-      { "action":  "accept",
-        "field": "uri.host", "operator": "contains", "argument": "carro.mercadolibre."
+      {
+        "action": "reject"
       },
-      { "action":  "accept",
-        "field": "uri.host", "operator": "contains", "argument": "vehiculo.mercadolibre."
-      }
-    ,
-      { "action":  "accept",
-        "field": "uri.host", "operator": "contains", "argument": "carros.mercadolibre."
+      {
+        "action": "accept",
+        "field": "uri.host",
+        "operator": "contains",
+        "argument": "carro.mercadolibre."
       },
-      { "action":  "accept",
-        "field": "uri.host", "operator": "contains", "argument": "vehiculos.mercadolibre."
+      {
+        "action": "accept",
+        "field": "uri.host",
+        "operator": "contains",
+        "argument": "vehiculo.mercadolibre."
       },
-      { "action":  "reject",
-        "field": "uri.path", "operator": "contains", "argument": "robots.txt"
+      {
+        "action": "accept",
+        "field": "uri.host",
+        "operator": "contains",
+        "argument": "carros.mercadolibre."
+      },
+      {
+        "action": "accept",
+        "field": "uri.host",
+        "operator": "contains",
+        "argument": "vehiculos.mercadolibre."
+      },
+      {
+        "action": "reject",
+        "field": "uri.path",
+        "operator": "contains",
+        "argument": "robots.txt"
       }
     ],
     "config": {
@@ -35,13 +58,16 @@
   },
   "crawler": {
     "filters": [
-      {"action":  "reject"},
       {
-        "field":  "uri.host",
-        "operator": "contains",
-        "argument": "mercadolibre",
+        "action": "reject"
+      },
+      {
+        "field": "uri.host",
+        "operator": "pattern",
+        "argument": "^(carro|carro|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$",
         "action": "accept"
-      },{
+      },
+      {
         "field": "uri.path",
         "operator": "pattern",
         "argument": ".*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$",

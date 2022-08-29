@@ -15,6 +15,7 @@ import org.netpreserve.jwarc.WarcResponse;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -70,8 +71,11 @@ public class WARCMigrator {
 
                 while (records.nextBatch(batch)) {
                     for (int rowNum = 0; rowNum < batch.size; rowNum++) {
+                        var url = urlColumn.toString(rowNum);
+                        var uri = URI.create(url);
+                        System.out.println(uri.getHost());
                         consumer.accept(
-                                List.of(timestampColumn.asScratchTimestamp(rowNum), urlColumn.toString(rowNum)));
+                                List.of(timestampColumn.asScratchTimestamp(rowNum), url));
                     }
                 }
             }
@@ -100,7 +104,7 @@ public class WARCMigrator {
                 for (WarcRecord record : reader) {
                     if (record instanceof WarcResponse) {
                         WarcResponse response = (WarcResponse) record;
-                        System.out.println("Writing: " + response.target());
+                        // System.out.println("Writing: " + response.target());
 
                         int rowNum = batch.size++;
                         timestampColumn.set(rowNum, Timestamp.from(record.date()));

@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.thordickinson</groupId>
-    <artifactId>web-crawler</artifactId>
+    <artifactId>dumb-crawler</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>web-crawler</name>
+    <name>Dumb crawler</name>
     <description>Simple web crawler</description>
     <properties>
         <java.version>17</java.version>
