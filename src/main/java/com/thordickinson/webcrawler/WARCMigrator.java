@@ -13,6 +13,7 @@ import org.netpreserve.jwarc.WarcResponse;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -42,6 +43,7 @@ public class WARCMigrator {
         BytesColumnVector urlColumn = (BytesColumnVector) batch.cols[1];
         BytesColumnVector contentColumn = (BytesColumnVector) batch.cols[2];
 
+        ByteBuffer buffer = ByteBuffer.allocate(100_000);
 
         try (WarcReader reader = new WarcReader(FileChannel.open(file))) {
             try (var writer = OrcFile.createWriter(target, OrcFile.writerOptions(configuration).setSchema(schema))) {
@@ -50,7 +52,8 @@ public class WARCMigrator {
                     WarcResponse response = (WarcResponse) record;
                     int rowNum = batch.size++;
                     timestampColumn.set(rowNum, Timestamp.from(record.date()));
-                    urlColumn.setVal(rowNum, response.);
+                    response.body().read(buffer);
+                    urlColumn.setVal(rowNum, buffer.array());
                     if(batch.size == batch.getMaxSize()){
                         writer.addRowBatch(batch);
                         batch.reset();
