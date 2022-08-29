@@ -49,7 +49,7 @@ class OrcPageWriter {
         Configuration configuration = new Configuration();
         writer = OrcFile.createWriter(target,
                 OrcFile.writerOptions(configuration).setSchema(schema));
-        batch = schema.createRowBatch();
+        batch = schema.createRowBatch(5);
         timestampColumn = (TimestampColumnVector) batch.cols[0];
         urlColumn = (BytesColumnVector) batch.cols[1];
         contentColumn = (BytesColumnVector) batch.cols[2];
@@ -72,6 +72,7 @@ class OrcPageWriter {
 
     private void addRowBatch() throws IOException {
         if (batch.size > 0) {
+            System.out.println("Saving page to disk");
             writer.addRowBatch(batch);
         }
     }

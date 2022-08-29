@@ -41,7 +41,7 @@ public class WARCMigrator {
     }
 
     public void read(String path) throws IOException {
-        Path root = Path.of("./data/jobs/test/executions/%s/orc".formatted(path));
+        Path root = Path.of("./data/jobs/meli/executions/%s/orc".formatted(path));
         var rootDir = root.toFile();
         for (var file : rootDir.listFiles()) {
             if (file.getName().endsWith(".orc")) {
@@ -126,6 +126,6 @@ public class WARCMigrator {
 
     public static void main(String[] args) throws IOException {
         // new WARCMigrator().migrate("1661552637911");
-        new WARCMigrator().read("1661784612252");
+        new WARCMigrator().read("1661784930324");
     }
 }
