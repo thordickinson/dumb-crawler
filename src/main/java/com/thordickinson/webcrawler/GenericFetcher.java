@@ -77,6 +77,9 @@ public class GenericFetcher extends PageFetcher {
     @Override
     public synchronized void shutDown() {
         this.isStopped.set(true);
+    }
+
+    public void destroy() {
         super.shutDown();
     }
 
@@ -147,6 +150,7 @@ public class GenericFetcher extends PageFetcher {
                     if (size > config.getMaxDownloadSize()) {
                         // fix issue #52 - consume entity
                         response.close();
+                        logger.warn("Page is too big: [{}]: {}", size, toFetchURL);
                         throw new PageBiggerThanMaxSizeException(size);
                     }
                 }

@@ -11,7 +11,7 @@ import org.springframework.context.event.EventListener;
 
 import java.util.Optional;
 
-@SpringBootApplication
+//@SpringBootApplication
 public class WebCrawlerApplication {
 
 	private static final Logger logger = LoggerFactory.getLogger(WebCrawlerApplication.class);

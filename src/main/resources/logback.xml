@@ -13,4 +13,6 @@
     <logger name="com.thordickinson.webcrawler.storage.WARCStorage" level="DEBUG"/>
     <logger name="com.thordickinson.webcrawler.storage.ORCStorage.filter" level="ALL"/>
     <logger name="com.thordickinson.webcrawler.rocketscrape.RocketScrapeURLTransformer" level="INFO"/>
+    <logger name="com.thordickinson.dumbcrawler.services.DumbCrawler" level="INFO" />
+    <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="INFO" />
 </configuration>

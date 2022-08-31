@@ -5,6 +5,7 @@ import com.thordickinson.webcrawler.api.filter.FilterPage;
 import com.thordickinson.webcrawler.filter.Decider;
 import com.thordickinson.webcrawler.filter.Decision;
 import com.thordickinson.webcrawler.filter.FilterEvaluator;
+import static com.thordickinson.webcrawler.util.HumanReadable.*;
 import com.thordickinson.webcrawler.util.MutableInteger;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.Page;
@@ -13,6 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +35,7 @@ public class CrawlingContext {
     private static final Long PRINT_TIMERS_TIMEOUT = 60_000L;
     private static final Logger counterLogger = LoggerFactory.getLogger(CrawlingContext.class.getName() + ".counters");
     private Long nextDisplay = System.currentTimeMillis();
+    private Runtime rt = Runtime.getRuntime();
 
     public CrawlingContext(String executionId, Any jobConfig, Path jobDir, CrawlConfig config,
             FilterEvaluator evaluator) {
@@ -40,6 +45,7 @@ public class CrawlingContext {
         this.jobDir = jobDir;
         this.config = config;
         executionDir = getJobDir().resolve("executions").resolve(executionId);
+
     }
 
     public Decision evaluateFilter(List<Decider> deciders, Page page) {
@@ -76,8 +82,19 @@ public class CrawlingContext {
             return;
         nextDisplay = now + PRINT_TIMERS_TIMEOUT;
 
-        StringBuilder message = new StringBuilder("Time since start: ").append(Math.floor((now - createdAt) / 1000))
-                .append(" secs.\n");
+        StringBuilder message = new StringBuilder("\nExecution Id: ").append(executionId).append("\n")
+                .append("Time since start: ")
+                .append(formatDuration(Duration.ofMillis(now - createdAt))).append("\n");
+
+        var max = rt.maxMemory();
+        var total = rt.totalMemory();
+        var free = rt.freeMemory();
+        var used = total - free;
+        var percent = Math.round((((double) used * 100D) / (double) max));
+        message.append(
+                "Memory: Max: %s | Total %s | Free: %s | Used: %s [%d%%]\n".formatted(formatBits(max),
+                        formatBits(total),
+                        formatBits(free), formatBits(used), percent));
         if (counters.isEmpty()) {
             message.append("No counters to display");
         }

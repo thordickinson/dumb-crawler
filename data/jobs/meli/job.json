@@ -2,20 +2,7 @@
   "seeds": [
     "https://vehiculos.mercadolibre.com.co/"
   ],
-  "threadCount": 10,
-  "orcStorage": {
-    "filters": [
-      {
-        "action": "reject"
-      },
-      {
-        "action": "accept",
-        "field": "uri.path",
-        "operator": "pattern",
-        "argument": "^\/(MCO|mco)-[0-9]+.*"
-      }
-    ]
-  },
+  "threadCount": 20,
   "rocketScrape": {
     "filters": [
       {
@@ -72,6 +59,35 @@
         "operator": "pattern",
         "argument": ".*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$",
         "action": "reject"
+      }
+    ]
+  },
+  "orcStorage": {
+    "filters": [
+      {
+        "action": "reject"
+      },
+      {
+        "action": "accept",
+        "field": "uri.path",
+        "operator": "pattern",
+        "argument": "^\/(MCO|mco)-[0-9]+.*"
+      }
+    ]
+  },
+  "stopper": {
+    "config": {
+      "timeout": 600
+    },
+    "filters": [
+      {
+        "action": "reject"
+      },
+      {
+        "action": "accept",
+        "field": "uri.path",
+        "operator": "pattern",
+        "argument": "^\/(MCO|mco)-[0-9]+.*"
       }
     ]
   }

@@ -8,6 +8,8 @@ import static com.thordickinson.webcrawler.util.JsonUtil.*;
 import com.thordickinson.webcrawler.api.*;
 import com.thordickinson.webcrawler.filter.FilterEvaluator;
 import com.thordickinson.webcrawler.util.ConfigurationException;
+import com.thordickinson.webcrawler.util.HumanReadable;
+
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.crawler.WebCrawler;
@@ -17,6 +19,7 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
@@ -30,6 +33,9 @@ import java.util.stream.Collectors;
 public class CrawlerService {
 
     private static final Logger logger = LoggerFactory.getLogger(CrawlerService.class);
+
+    @Value("${crawler.jobId:#{null}}")
+    private Optional<String> jobId = Optional.empty();
     @Autowired(required = false)
     private List<PrefetchInterceptor> prefetchInterceptors = Collections.emptyList();
     @Autowired(required = false)
@@ -41,28 +47,37 @@ public class CrawlerService {
     @Autowired
     private FilterEvaluator evaluator;
     private CrawlController crawlController;
+    private PageFetcher pageFetcher;
 
     private CrawlingContext crawlingContext;
 
-    //TODO: need to define a mechanism to stop crawling
+    // TODO: need to define a mechanism to stop crawling
     public void crawl(String job) throws Exception {
-        String executionId = String.valueOf(System.currentTimeMillis());
+        String executionId = jobId.orElseGet(() -> String.valueOf(System.currentTimeMillis()));
         var jobDir = Path.of("./data/jobs").resolve(job);
         var jobConfig = loadJob(jobDir);
         CrawlConfig config = new CrawlConfig();
+        config.setResumableCrawling(jobId.isPresent());
+
         crawlingContext = new CrawlingContext(executionId, jobConfig, jobDir, config, evaluator);
         config.setCrawlStorageFolder(crawlingContext.getExecutionDir().resolve("db").toString());
 
         int numberOfCrawlers = get(jobConfig, "threadCount").map(Any::toInt).orElseGet(() -> 3);
+        int originalSize = 1048576;
+        int maxDownloadSize = get(jobConfig, "maxDownloadSize").map(Any::toInt).orElseGet(() -> originalSize * 5);
+        config.setMaxDownloadSize(maxDownloadSize);
+        logger.info("Max download size set to {}", HumanReadable.formatBits(maxDownloadSize));
 
         // Instantiate the controller for this crawl.
-        PageFetcher pageFetcher = new GenericFetcher(crawlingContext, prefetchInterceptors, pageValidators, urlTransformers);
+        pageFetcher = new GenericFetcher(crawlingContext, prefetchInterceptors, pageValidators,
+                urlTransformers);
         RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
         RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
         crawlController = new CrawlController(config, pageFetcher, robotstxtServer);
 
         var seeds = getSeeds(jobConfig);
-        if (seeds.isEmpty()) throw new IllegalArgumentException("Crawl job must have at least one seed");
+        if (seeds.isEmpty())
+            throw new IllegalArgumentException("Crawl job must have at least one seed");
         getSeeds(jobConfig).forEach(s -> {
             logger.info("Adding url seed: {}", s);
             crawlController.addSeed(s);
@@ -76,14 +91,15 @@ public class CrawlerService {
         crawlController.start(factory, numberOfCrawlers);
     }
 
-    public void stopCrawler(){
-        if(crawlController != null){
+    public void stopCrawler() {
+        if (crawlController != null) {
             crawlController.shutdown();
         }
     }
 
     private Set<String> getSeeds(Any jobConfig) {
-        return get(jobConfig, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString).collect(Collectors.toSet()))
+        return get(jobConfig, "seeds").map(Any::asList)
+                .map(l -> l.stream().map(Any::toString).collect(Collectors.toSet()))
                 .orElseThrow(() -> new ConfigurationException("Seeds are required"));
     }
 
@@ -104,6 +120,7 @@ public class CrawlerService {
             for (var counter : counters) {
                 logger.info("{} : {}", counter, crawlingContext.getCounter(counter));
             }
+
         }
     }
 }

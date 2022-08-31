@@ -16,13 +16,16 @@ import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.orc.OrcFile;
 import org.apache.orc.TypeDescription;
 import org.apache.orc.Writer;
+import org.apache.orc.OrcFile.WriterOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.github.slugify.Slugify;
+import com.jsoniter.any.Any;
 import com.thordickinson.webcrawler.api.AbstractFilteredPageHandler;
 import com.thordickinson.webcrawler.api.CrawlingContext;
+import com.thordickinson.webcrawler.util.ConfigurationSupport;
 
 import edu.uci.ics.crawler4j.crawler.Page;
 
@@ -37,18 +40,28 @@ class OrcPageWriter {
     private BytesColumnVector contentColumn;
     private VectorizedRowBatch batch;
     private boolean initialized = false;
+    private int stripeSize = -1;
 
-    public OrcPageWriter(Path target) {
-        this.target = new org.apache.hadoop.fs.Path(target.toString());
+    public OrcPageWriter(Path directory, String fileName, Integer threadCount) {
+        Path filePath = directory.resolve(fileName + ".orc");
+        int counter = 1;
+
+        while (filePath.toFile().isFile())
+            filePath = directory.resolve(fileName + "_" + String.valueOf(counter++) + ".orc");
+        this.target = new org.apache.hadoop.fs.Path(filePath.toString());
+        var maxMemory = Runtime.getRuntime().maxMemory();
+        stripeSize = (int) (maxMemory / (3 * threadCount));
     }
 
     private void initialize() throws IOException {
         if (initialized)
             return;
 
-        Configuration configuration = new Configuration();
-        writer = OrcFile.createWriter(target,
-                OrcFile.writerOptions(configuration).setSchema(schema));
+        var options = OrcFile.writerOptions(new Configuration())
+                .stripeSize(stripeSize)
+                .setSchema(schema);
+
+        writer = OrcFile.createWriter(target, options);
         batch = schema.createRowBatch(5);
         timestampColumn = (TimestampColumnVector) batch.cols[0];
         urlColumn = (BytesColumnVector) batch.cols[1];
@@ -66,14 +79,13 @@ class OrcPageWriter {
 
         if (batch.size == batch.getMaxSize()) {
             addRowBatch();
-            batch.reset();
         }
     }
 
     private void addRowBatch() throws IOException {
         if (batch.size > 0) {
-            System.out.println("Saving page to disk");
             writer.addRowBatch(batch);
+            batch.reset();
         }
     }
 
@@ -91,16 +103,23 @@ public class ORCStorage extends AbstractFilteredPageHandler {
     private static final Logger logger = LoggerFactory.getLogger(ORCStorage.class);
     private final Slugify slugify = Slugify.builder().lowerCase(true).underscoreSeparator(true).build();
     private final ConcurrentHashMap<Thread, OrcPageWriter> writers = new ConcurrentHashMap<>();
+    private Integer threadCount = 3;
 
     public ORCStorage() {
         super("orcStorage");
     }
 
+    @Override
+    protected void initialize(CrawlingContext context, ConfigurationSupport config) {
+        super.initialize(context, config);
+        threadCount = config.getConfig("threadCount", context).map(Any::toInt).orElseGet(() -> 3);
+    }
+
     private OrcPageWriter createWriter(Thread thread, CrawlingContext context) {
         String fileName = slugify.slugify(context.getExecutionId() + "_" + thread.getName());
-        var path = context.getExecutionDir().resolve("orc").resolve(fileName + ".orc");
-        logger.info("Creating ORC file in {}", path);
-        return new OrcPageWriter(path);
+        var directory = context.getExecutionDir().resolve("orc");
+        logger.info("Creating ORC file in {}", directory);
+        return new OrcPageWriter(directory, fileName, threadCount);
     }
 
     private OrcPageWriter getWriter(CrawlingContext context) {
