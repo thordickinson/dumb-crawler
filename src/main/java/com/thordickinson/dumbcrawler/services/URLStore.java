@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.util.Misc;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -74,8 +76,10 @@ public class URLStore {
             logger.warn("Link is too long: [{}]", link);
             return false;
         }
-        var uri = URI.create(link);
-        if (uri.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$")) {
+        var uri = Misc.parseURI(link);
+        if (uri.map(u -> u.getHost() != null
+                && u.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$"))
+                .orElse(false)) {
             return true;
         }
         return false;
@@ -86,7 +90,7 @@ public class URLStore {
         if (urls.isEmpty())
             return false;
 
-        var filtered = urls.stream().filter(this::shouldAddLink).collect(Collectors.toSet());
+        var filtered = urls.stream().filter(this::shouldAddLink).collect(Collectors.toList());
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
         if (filtered.isEmpty())
@@ -95,7 +99,7 @@ public class URLStore {
         var connection = getConnection();
         var placeholders = String.join(", ", filtered.stream().map(f -> "?").collect(Collectors.toList()));
         var exists = "SELECT url FROM links WHERE url in (%s)".formatted(placeholders);
-        var existent = query(connection, exists, filtered.toArray()).stream().map(r -> r.get(0)).map(String::valueOf)
+        var existent = query(connection, exists, filtered).stream().map(r -> r.get(0)).map(String::valueOf)
                 .collect(Collectors.toSet());
 
         var toInsert = new HashSet<>(filtered);
@@ -112,11 +116,16 @@ public class URLStore {
         return true;
     }
 
+    public void getStatus() {
+        // singleResult(Integer.class, getConnection(), "SELECT count(*) FROM links
+        // GROUP BY status");
+    }
+
     public boolean addURLs(Set<String> urls) {
-        if (urls.size() > 20) {
-            logger.warn("Adding {}", urls);
+        if (urls.size() > 50) {
+            logger.warn("Adding {} urls, spliting in batches", urls.size());
         }
-        var chunks = Lists.partition(new ArrayList<>(urls), 20);
+        var chunks = Lists.partition(new ArrayList<>(urls), 50);
         return chunks.stream().map(this::addUrlsInternal).reduce((a, b) -> a || b).orElse(false);
     }
 
@@ -138,7 +147,7 @@ public class URLStore {
 
     public Set<String> getUnvisited(int count) {
         var sql = "SELECT url FROM links WHERE status = 0 ORDER BY created_at ASC LIMIT ?";
-        var result = query(getConnection(), sql, count);
+        var result = query(getConnection(), sql, List.of(count));
         var unvisited = result.stream().map(r -> r.get(0)).map(String::valueOf).collect(Collectors.toSet());
         var urlList = String.join(", ", unvisited.stream().map(s -> "'%s'".formatted(s)).collect(Collectors.toList()));
         var update = "UPDATE links SET status = 1 WHERE url IN (%s)".formatted(urlList);

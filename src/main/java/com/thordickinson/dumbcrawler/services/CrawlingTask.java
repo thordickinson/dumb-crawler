@@ -11,6 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.UnsupportedMimeTypeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.thordickinson.dumbcrawler.api.CrawledPage;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
@@ -19,6 +21,7 @@ public class CrawlingTask implements Callable<CrawlingResult> {
 
     private final String url;
     private static Optional<String> HTML = Optional.of("text/html");
+    private static final Logger logger = LoggerFactory.getLogger(CrawlingTask.class);
 
     public CrawlingTask(String url) {
         this.url = url;
@@ -43,6 +46,9 @@ public class CrawlingTask implements Callable<CrawlingResult> {
                     .stream().map(l -> l.absUrl("href"))
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toSet());
+            if (links.size() > 300) {
+                logger.warn("Page {} has more than 300 links", url);
+            }
             linkContainer.addAll(links);
             return new CrawledPage(url, 200, HTML, Optional.of(document.outerHtml()));
         } catch (HttpStatusException ex) {
