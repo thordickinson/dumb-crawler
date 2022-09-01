@@ -1,5 +1,6 @@
 package com.thordickinson.dumbcrawler.services;
 
+import org.apache.orc.OrcConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -96,10 +97,13 @@ public class ORCResultHandler implements CrawlingResultHandler {
         while (filePath.toFile().isFile())
             filePath = directory.resolve(fileName + "_" + String.valueOf(counter++) + ".orc");
         this.target = new org.apache.hadoop.fs.Path(filePath.toString());
-        var maxMemory = Runtime.getRuntime().maxMemory();
-        stripeSize = (int) (maxMemory / 4);
 
-        var options = OrcFile.writerOptions(new Configuration())
+        var MB = 1024 * 1024;
+        stripeSize = 20 * MB;
+
+        var configuration = new Configuration();
+        configuration.set(OrcConf.ROWS_BETWEEN_CHECKS.getAttribute(), String.valueOf(100));
+        var options = OrcFile.writerOptions(configuration)
                 .stripeSize(stripeSize)
                 .setSchema(schema);
 
