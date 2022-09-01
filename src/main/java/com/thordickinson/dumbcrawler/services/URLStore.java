@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,6 +16,7 @@ import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
@@ -67,6 +70,10 @@ public class URLStore {
     }
 
     private boolean shouldAddLink(String link) {
+        if (link.length() > 1024) {
+            logger.warn("Link is too long: [{}]", link);
+            return false;
+        }
         var uri = URI.create(link);
         if (uri.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$")) {
             return true;
@@ -74,8 +81,8 @@ public class URLStore {
         return false;
     }
 
-    public boolean addURLs(Set<String> urls) {
 
+    private boolean addUrlsInternal(Collection<String> urls) {
         if (urls.isEmpty())
             return false;
 
@@ -86,8 +93,9 @@ public class URLStore {
             return false;
 
         var connection = getConnection();
-        var exists = "SELECT url FROM links WHERE url in (%s)".formatted(formatUrls(filtered));
-        var existent = query(connection, exists).stream().map(r -> r.get(0)).map(String::valueOf)
+        var placeholders = String.join(", ", filtered.stream().map(f -> "?").collect(Collectors.toList()));
+        var exists = "SELECT url FROM links WHERE url in (%s)".formatted(placeholders);
+        var existent = query(connection, exists, filtered.toArray()).stream().map(r -> r.get(0)).map(String::valueOf)
                 .collect(Collectors.toSet());
 
         var toInsert = new HashSet<>(filtered);
@@ -102,6 +110,14 @@ public class URLStore {
         executeUpdate(connection, insert);
         logger.debug("New urls added: {}", toInsert.size());
         return true;
+    }
+
+    public boolean addURLs(Set<String> urls) {
+        if (urls.size() > 20) {
+            logger.warn("Adding {}", urls);
+        }
+        var chunks = Lists.partition(new ArrayList<>(urls), 20);
+        return chunks.stream().map(this::addUrlsInternal).reduce((a, b) -> a || b).orElse(false);
     }
 
     public void addSeeds(Set<String> seeds) {

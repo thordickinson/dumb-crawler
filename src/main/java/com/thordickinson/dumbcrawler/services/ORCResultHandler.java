@@ -22,6 +22,7 @@ import org.apache.orc.Writer;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
+import com.thordickinson.webcrawler.util.HumanReadable;
 
 @Service
 public class ORCResultHandler implements CrawlingResultHandler {
@@ -56,11 +57,20 @@ public class ORCResultHandler implements CrawlingResultHandler {
     }
 
     private boolean shouldSavePage(CrawlingResult result) {
-        var uri = URI.create(result.requestedUrl());
-        if (!uri.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$")) {
-            return false;
-        }
-        if (!uri.getPath().matches("^/(MCO|mco).*")) {
+        try {
+            var uri = URI.create(result.requestedUrl());
+            if (uri.getHost() == null) {
+                logger.error("Null host detected: {}", result.requestedUrl());
+                return false;
+            }
+            if (!uri.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$")) {
+                return false;
+            }
+            if (uri.getPath() == null || !uri.getPath().matches("^/(MCO|mco).*")) {
+                return false;
+            }
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Error parsing uri: {}", result.requestedUrl());
             return false;
         }
         return true;
@@ -113,6 +123,7 @@ public class ORCResultHandler implements CrawlingResultHandler {
         urlColumn.setRef(rowNum, urlBytes, 0, urlBytes.length);
         var content = page.page().content().get();
         contentColumn.setVal(rowNum, content.getBytes(StandardCharsets.UTF_8));
+        context.setCounter("orcWriterMemory", HumanReadable.formatBits(writer.estimateMemory()));
 
         if (batch.size == batch.getMaxSize()) {
             addRowBatch();

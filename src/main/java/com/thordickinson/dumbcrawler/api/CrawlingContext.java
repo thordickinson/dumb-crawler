@@ -1,6 +1,7 @@
 package com.thordickinson.dumbcrawler.api;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -28,7 +29,7 @@ public class CrawlingContext {
     private final Any jobDescriptor;
     @Getter
     private final Path executionDir;
-    private final Map<String, Integer> counters = new HashMap<>();
+    private final Map<String, Serializable> counters = new HashMap<>();
     @Getter
     private final long startedAt = System.currentTimeMillis();
 
@@ -68,13 +69,17 @@ public class CrawlingContext {
     }
 
     public int increaseCounter(String key, int amount) {
-        int count = this.counters.getOrDefault(key, 0);
+        int count = (int) this.counters.getOrDefault(key, 0);
         count += amount;
         this.counters.put(key, count);
         return count;
     }
 
-    public Map<String, Integer> getCounters() {
+    public void setCounter(String key, Serializable value) {
+        this.counters.put(key, value);
+    }
+
+    public Map<String, Serializable> getCounters() {
         return Collections.unmodifiableMap(counters);
     }
 
