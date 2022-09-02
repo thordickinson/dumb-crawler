@@ -91,7 +91,7 @@ public class ORCResultHandler implements CrawlingResultHandler {
         var directory = context.getExecutionDir().resolve("orc");
         var fileName = "%s".formatted(context.getExecutionId());
 
-        Path filePath = directory.resolve(fileName);
+        Path filePath = directory.resolve(fileName + ".orc");
         int counter = 1;
 
         while (filePath.toFile().isFile())
@@ -117,7 +117,7 @@ public class ORCResultHandler implements CrawlingResultHandler {
     public void write(CrawlingResult page) throws IOException {
 
         if (page.page().content().isEmpty()) {
-            logger.warn("Empty content received: {}", page.requestedUrl());
+            logger.warn("Empty content received: {} -> {}", page.page().resultCode(), page.requestedUrl());
             return;
         }
 

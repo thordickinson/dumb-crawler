@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -29,6 +30,7 @@ import static com.thordickinson.webcrawler.util.HumanReadable.*;
 public class DumbCrawler implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(DumbCrawler.class);
+    private static final Logger errorLogger = LoggerFactory.getLogger(DumbCrawler.class.getName() + ".error");
 
     private URLStore store;
     @Autowired
@@ -86,10 +88,22 @@ public class DumbCrawler implements Runnable {
     }
 
     private void processCompletedTasks(Set<CrawlingResult> completed) {
-        var links = completed.stream().flatMap(c -> c.links().stream()).collect(Collectors.toSet());
+
+        var failed = completed.stream().filter(c -> c.error().isPresent()).collect(Collectors.toList());
+        store.setFailed(failed.stream().map(CrawlingResult::requestedUrl).collect(Collectors.toSet()));
+        crawlingContext.increaseCounter("failedTasks", failed.size());
+        var errors = failed.stream().map(c -> c.error().get()).map(e -> "error." + e.getClass().getName())
+                .collect(Collectors.toSet());
+        errors.forEach(e -> crawlingContext.increaseCounter(e));
+        failed.forEach(f -> {
+            errorLogger.warn("Error getting url {}", f.requestedUrl(), f.error().get());
+        });
+
+        var success = completed.stream().filter(c -> c.error().isEmpty()).collect(Collectors.toList());
+        store.setVisited(success.stream().map(CrawlingResult::requestedUrl).collect(Collectors.toSet()));
+        var links = success.stream().flatMap(c -> c.links().stream()).collect(Collectors.toSet());
         store.addURLs(links);
-        store.setVisited(completed.stream().map(CrawlingResult::requestedUrl).collect(Collectors.toSet()));
-        for (var result : completed) {
+        for (var result : success) {
             for (var resultHandler : resultHandlers) {
                 resultHandler.handleCrawlingResult(result);
             }
@@ -150,7 +164,6 @@ public class DumbCrawler implements Runnable {
         StringBuilder message = new StringBuilder("\nExecution Id: ").append(ctx.getExecutionId()).append("\n")
                 .append("Time since start: ")
                 .append(formatDuration(Duration.ofMillis(now - ctx.getStartedAt()))).append("\n");
-
         var max = rt.maxMemory();
         var total = rt.totalMemory();
         var free = rt.freeMemory();
@@ -163,6 +176,10 @@ public class DumbCrawler implements Runnable {
         var counters = ctx.getCounters();
         if (counters.isEmpty()) {
             message.append("No counters to display");
+        }
+        var status = store.getStatus();
+        for (var entry : status.entrySet()) {
+            message.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
         }
         for (var entry : counters.entrySet()) {
             message.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");

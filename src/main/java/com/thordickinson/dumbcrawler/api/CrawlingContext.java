@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -33,9 +35,11 @@ public class CrawlingContext {
     @Getter
     private final long startedAt = System.currentTimeMillis();
 
+    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmm");
+
     public CrawlingContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;
-        this.executionId = executionId.orElseGet(() -> String.valueOf(System.currentTimeMillis()));
+        this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
         jobDir = Path.of("./data/jobs").resolve(jobId);
         jobDescriptor = loadJob(jobDir);
         executionDir = jobDir.resolve("executions").resolve(this.executionId);

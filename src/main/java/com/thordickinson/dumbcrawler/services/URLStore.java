@@ -9,8 +9,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.PreDestroy;
 
@@ -19,19 +22,57 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.util.Misc;
+import com.thordickinson.dumbcrawler.util.ParsedURI;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
 public class URLStore {
 
+    public static class Status {
+        public static int QUEUED = 0;
+        public static int PROCESSING = 1;
+        public static int PROCESSED = 2;
+        public static int FAILED = 3;
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(URLStore.class);
     private Connection cachedConnection;
     private final CrawlingContext context;
+    private int queued = 0;
+    private int processed = 0;
+    private int failed = 0;
 
     public URLStore(CrawlingContext context) {
         this.context = context;
         cachedConnection = createConnection();
+    }
+
+    private void loadCounters(Connection connection) {
+        var sql = "select status, count(*) as count from links group by status";
+        var counters = query(connection, sql);
+        for (var counter : counters) {
+            var status = (int) counter.get(0);
+            switch (status) {
+                case 0 -> queued = (int) counter.get(1);
+                case 2 -> processed = (int) counter.get(1);
+                case 3 -> failed = (int) counter.get(1);
+            }
+        }
+    }
+
+    private void updateOrphans(Connection connection) {
+        var orphans = executeUpdate(connection, "UPDATE links SET status = 0 WHERE status = 1");
+        if (orphans > 0)
+            logger.warn("{} orphan urls were updated", orphans);
+    }
+
+    private void markForRefetch(Connection connection) {
+        boolean refetch = false;
+        if (refetch) {
+            logger.warn("Marking all links for refetch");
+            executeUpdate(connection, "UPDATE links SET status = 0"); // This will force to revisit all the pages
+            logger.warn("Refetch update completed");
+        }
     }
 
     private void initialize(Connection connection) {
@@ -39,18 +80,18 @@ public class URLStore {
         var checkResult = singleResult(String.class, connection, check);
         if (checkResult.isPresent()) {
             logger.info("Schema is initialized");
+            updateOrphans(connection);
+            loadCounters(connection);
+            markForRefetch(connection);
             return;
         }
 
         logger.info("Initializing schema");
-        String table = "CREATE TABLE links (created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT PRIMARY KEY, status INTEGER DEFAULT 0) WITHOUT ROWID";
+        String table = "CREATE TABLE links (created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT PRIMARY KEY, " +
+                "status INTEGER DEFAULT 0, priority INTEGER DEFAULT 0) WITHOUT ROWID";
         executeUpdate(connection, table);
-        String index = "CREATE INDEX status_index ON links(status)";
-        executeUpdate(connection, index);
-        String cleanup = "UPDATE links SET status = 0 WHERE status = 1";
-        var orphans = executeUpdate(connection, cleanup);
-        if (orphans > 0)
-            logger.warn("{} orphan urls were updated", orphans);
+        executeUpdate(connection, "CREATE INDEX status_index ON links(status)");
+        executeUpdate(connection, "CREATE INDEX priority_index ON links(priority)");
         logger.info("Schema creation complete");
     }
 
@@ -71,26 +112,34 @@ public class URLStore {
         return cachedConnection;
     }
 
-    private boolean shouldAddLink(String link) {
-        if (link.length() > 1024) {
-            logger.warn("Link is too long: [{}]", link);
+    private boolean shouldAddLink(ParsedURI uri) {
+        if (uri.originalUri().length() > 1024) {
+            logger.warn("Link is too long: [{}]", uri.originalUri());
             return false;
         }
-        var uri = Misc.parseURI(link);
-        if (uri.map(u -> u.getHost() != null
-                && u.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$"))
+        if (uri.host().map(h -> h.matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$"))
                 .orElse(false)) {
             return true;
         }
+        if (uri.path().map(p -> p.startsWith("/_LICENSE*PLATE*LAST*DIGIT")).orElse(false)) {
+            return false;
+        }
+
         return false;
     }
 
+    private int getPriority(ParsedURI uri) {
+        return uri.path().map(u -> u.toLowerCase().startsWith("/mco") ? 100 : 0).orElse(0);
+    }
 
     private boolean addUrlsInternal(Collection<String> urls) {
         if (urls.isEmpty())
             return false;
 
-        var filtered = urls.stream().filter(this::shouldAddLink).collect(Collectors.toList());
+        var filtered = urls.stream().map(ParsedURI::fromString).filter(Optional::isPresent).map(Optional::get)
+                .filter(this::shouldAddLink).map(ParsedURI::originalUri)
+                .collect(Collectors.toList());
+
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
         if (filtered.isEmpty())
@@ -106,25 +155,28 @@ public class URLStore {
         toInsert.removeAll(existent);
         if (toInsert.isEmpty())
             return false;
-        var sqlFormat = String.join(", ",
-                toInsert.stream().map(s -> "('%s')".formatted(s)).collect(Collectors.toSet()));
+        var prioritized = toInsert.stream().map(ParsedURI::fromString).filter(Optional::isPresent).map(Optional::get)
+                .collect(Collectors.toMap(ParsedURI::originalUri, u -> getPriority(u)));
 
         context.increaseCounter("discoveredUrls", toInsert.size());
-        var insert = "INSERT INTO links (url) VALUES %s".formatted(sqlFormat);
-        executeUpdate(connection, insert);
+
+        var sqlFormat = String.join(", ",
+                toInsert.stream().map(s -> "(?, ?)").collect(Collectors.toList()));
+        List<Object> params = prioritized.entrySet().stream().flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        queued += toInsert.size();
+        var insert = "INSERT INTO links (url, priority) VALUES %s".formatted(sqlFormat);
+        executeUpdate(connection, insert, params);
         logger.debug("New urls added: {}", toInsert.size());
         return true;
     }
 
-    public void getStatus() {
-        // singleResult(Integer.class, getConnection(), "SELECT count(*) FROM links
-        // GROUP BY status");
+    public Map<String, Integer> getStatus() {
+        return Map.of("QUEUED", queued, "PROCESSED", processed, "FAILED", failed);
     }
 
     public boolean addURLs(Set<String> urls) {
-        if (urls.size() > 50) {
-            logger.warn("Adding {} urls, spliting in batches", urls.size());
-        }
+        logger.debug("Receiving {} urls to process, spliting in batches", urls.size());
         var chunks = Lists.partition(new ArrayList<>(urls), 50);
         return chunks.stream().map(this::addUrlsInternal).reduce((a, b) -> a || b).orElse(false);
     }
@@ -138,15 +190,29 @@ public class URLStore {
     }
 
     public void setVisited(Set<String> urls) {
+        updateStatus(urls, Status.PROCESSED);
+        var size = urls.size();
+        processed += size;
+        queued -= size;
+    }
+
+    public void setFailed(Set<String> urls) {
+        updateStatus(urls, Status.FAILED);
+        var size = urls.size();
+        failed += size;
+        queued -= size;
+    }
+
+    public void updateStatus(Set<String> urls, int status) {
         String strUrls = formatUrls(urls);
-        String sql = "UPDATE links SET status = 2 WHERE url IN (%s)".formatted(strUrls);
+        String sql = "UPDATE links SET status = %d WHERE url IN (%s)".formatted(status, strUrls);
         var updated = executeUpdate(getConnection(), sql);
         context.increaseCounter("visitedUrls", urls.size());
         logger.debug("Marking {} urls as visited", updated);
     }
 
     public Set<String> getUnvisited(int count) {
-        var sql = "SELECT url FROM links WHERE status = 0 ORDER BY created_at ASC LIMIT ?";
+        var sql = "SELECT url FROM links WHERE status = 0 ORDER BY priority DESC LIMIT ?";
         var result = query(getConnection(), sql, List.of(count));
         var unvisited = result.stream().map(r -> r.get(0)).map(String::valueOf).collect(Collectors.toSet());
         var urlList = String.join(", ", unvisited.stream().map(s -> "'%s'".formatted(s)).collect(Collectors.toList()));
