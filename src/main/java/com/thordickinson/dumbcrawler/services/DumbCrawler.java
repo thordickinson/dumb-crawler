@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
+import com.thordickinson.dumbcrawler.api.URLTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,8 @@ public class DumbCrawler implements Runnable {
     private URLStore store;
     @Autowired
     private ConfigurableApplicationContext appContext;
+    @Autowired
+    private List<URLTransformer> urlTransformers = Collections.emptyList();
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
 
@@ -138,6 +141,8 @@ public class DumbCrawler implements Runnable {
         crawlingContext = new CrawlingContext(jobId, executionId);
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
+        urlTransformers.forEach(t -> t.initialize(crawlingContext));
+
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
@@ -224,8 +229,15 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(CrawlingTask::new).map(executor::submit).collect(Collectors.toSet());
+        var newTasks = urls.stream().map(u -> new CrawlingTask(u, transformUrl(u)))
+                .map(executor::submit).collect(Collectors.toSet());
         runningTasks.addAll(newTasks);
+    }
+
+    private String transformUrl(String url){
+        String result  = url;
+        for(var t : urlTransformers) result = t.transform(result);
+        return result;
     }
 
     private void sleep() {

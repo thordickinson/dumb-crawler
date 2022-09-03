@@ -1,9 +1,5 @@
 package com.thordickinson.dumbcrawler.api;
 
-public interface CrawlingResultHandler {
-    void initialize(CrawlingContext context);
-
+public interface CrawlingResultHandler  extends  CrawlingComponent{
     void handleCrawlingResult(CrawlingResult result);
-
-    void destroy();
 }
