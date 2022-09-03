@@ -31,6 +31,7 @@ public class AvroStorage implements CrawlingResultHandler {
     public void handleCrawlingResult(CrawlingResult result) {
         var record = createRecord(result);
         logger.debug("Saving page in avro format {}", record.getUrl());
+        context.increaseCounter("storedPages");
         try {
             write(record);
         } catch (IOException ex) {
