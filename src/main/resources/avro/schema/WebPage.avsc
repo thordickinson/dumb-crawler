@@ -1,0 +1,24 @@
+{
+    "type": "record",
+    "name": "WebPage",
+    "namespace": "com.thordickinson.dumbcrawler.services.storage.avro.schema",
+    "fields": [
+      {
+        "name": "url",
+        "type": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "long"
+      },
+      {
+        "name": "contentType",
+        "type": "string"
+      },
+      {
+        "name": "content",
+        "type": "string"
+      }
+    ]
+  }
+  

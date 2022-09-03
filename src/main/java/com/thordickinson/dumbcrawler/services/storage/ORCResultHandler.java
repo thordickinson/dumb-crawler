@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.services;
+package com.thordickinson.dumbcrawler.services.storage;
 
 import org.apache.orc.OrcConf;
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.webcrawler.util.HumanReadable;
 
-@Service
+//@Service
 public class ORCResultHandler implements CrawlingResultHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ORCResultHandler.class);

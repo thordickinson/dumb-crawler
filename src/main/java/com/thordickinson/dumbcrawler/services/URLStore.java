@@ -1,6 +1,5 @@
 package com.thordickinson.dumbcrawler.services;
 
-import java.net.URI;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -67,7 +66,7 @@ public class URLStore {
     }
 
     private void markForRefetch(Connection connection) {
-        boolean refetch = false;
+        boolean refetch = false; // TODO: Make this configurable with a argument
         if (refetch) {
             logger.warn("Marking all links for refetch");
             executeUpdate(connection, "UPDATE links SET status = 0"); // This will force to revisit all the pages

@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -38,6 +38,7 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
 
+    private boolean stopRequested = false;
     private boolean stopped = false;
     private long sleepTime = 1000;
     private ThreadPoolExecutor executor;
@@ -116,16 +117,13 @@ public class DumbCrawler implements Runnable {
 
     private void terminate() {
         logger.info("Ending crawling session");
-        shutdownExecutor(executor);
-        logger.info("Terminated");
         resultHandlers.forEach(r -> r.destroy());
-        appContext.close();
+        executor.shutdownNow();
     }
 
-    private static void shutdownExecutor(ThreadPoolExecutor executor) {
-        executor.shutdown();
+    private void awaitTermination(int minutes) {
         try {
-            executor.awaitTermination(60, TimeUnit.SECONDS);
+            executor.awaitTermination(minutes, TimeUnit.MINUTES);
         } catch (InterruptedException ex) {
             logger.error("Error while waiting for all the tasks to complete", ex);
         }
@@ -189,11 +187,28 @@ public class DumbCrawler implements Runnable {
 
     @PreDestroy
     public void stop() {
-        logger.info("Stopping ");
-        this.stopped = true;
+        logger.info("Stop requested, waiting for tasks to complete");
+        stopRequested = true;
+        if (executor != null) {
+            awaitTermination(10);
+        }
+        appContext.close();
     }
 
     private void scheduleNewTasks() {
+        if (stopRequested) {
+            var active = executor.getActiveCount();
+            var queue = executor.getQueue();
+            if (queue.size() > 0) {
+                logger.info("Removing {} tasks from queue", queue.size());
+                queue.clear();
+            }
+            logger.info("Stop requested: Waiting for {} active tasks", active);
+            if (active == 0) {
+                this.stopped = true;
+            }
+            return;
+        }
         int size = executor.getQueue().size();
         int maxQueuedTasks = executor.getMaximumPoolSize() * 2;
         int scheduleLimit = (int) Math.round(executor.getMaximumPoolSize() * 1.5);
