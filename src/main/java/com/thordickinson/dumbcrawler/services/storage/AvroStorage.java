@@ -2,6 +2,7 @@ package com.thordickinson.dumbcrawler.services.storage;
 
 import java.io.IOException;
 
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.specific.SpecificDatumWriter;
@@ -46,6 +47,7 @@ public class AvroStorage implements CrawlingResultHandler {
         logger.info("Avro file created: {}", file.toString());
         writer = new SpecificDatumWriter<>(WebPage.class);
         fileWriter = new DataFileWriter<>(writer);
+        fileWriter.setCodec(CodecFactory.bzip2Codec());
         if (file.toFile().isFile()) {
             fileWriter.appendTo(file.toFile());
         } else {
