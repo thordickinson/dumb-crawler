@@ -30,7 +30,7 @@ public class AvroStorage implements CrawlingResultHandler {
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
         var record = createRecord(result);
-        logger.info("Saving page in avro format {}", record.getUrl());
+        logger.debug("Saving page in avro format {}", record.getUrl());
         try {
             write(record);
         } catch (IOException ex) {
@@ -73,7 +73,7 @@ public class AvroStorage implements CrawlingResultHandler {
     private WebPage createRecord(CrawlingResult result) {
         var url = result.requestedUrl();
         var data = result.page().content().orElse("");
-        logger.info("Writing data for [{}]: {} ", data.length(), url);
+        logger.debug("Writing data for [{}]: {} ", data.length(), url);
         return WebPage.newBuilder()
                 .setContentType(result.page().contentType().orElse(""))
                 .setContent(data)
