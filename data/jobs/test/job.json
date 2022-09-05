@@ -19,7 +19,7 @@
         "urlFilter": "matches(path, '/(mcu|MCU).*')"
       }
     ],
-    "filter": "endsWith(host,'.edu') and not matches(path, '.*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$')"
+    "urlFilter": "endsWith(host,'.edu') and not matches(path, '.*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$')"
   },
   "stopper": {
     "timeout": 10

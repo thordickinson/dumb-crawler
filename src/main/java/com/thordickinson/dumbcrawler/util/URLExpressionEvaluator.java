@@ -2,13 +2,19 @@ package com.thordickinson.dumbcrawler.util;
 
 import com.creativewidgetworks.expressionparser.*;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Stack;
 
 public class URLExpressionEvaluator {
+
+    private static final Logger logger = LoggerFactory.getLogger(URLExpressionEvaluator.class);
     private final Parser parser = new Parser();
     private final FunctionToolbox toolbox = FunctionToolbox.register(parser);
     private final Value FALSE = new Value().setValue(false);
@@ -28,8 +34,15 @@ public class URLExpressionEvaluator {
         return evaluate(expression, uri, Optional.empty());
     }
 
-    public boolean evaluate(String expression, String uri, Optional<String> contentType) {        var parsed = URI.create(uri);
-        return evaluate(expression, URI.create(uri), contentType);
+    public boolean evaluate(String expression, String uri, Optional<String> contentType) {
+        if(uri == null) return false;
+        try {
+            var parsed = URI.create(URLEncoder.encode(uri, StandardCharsets.UTF_8));
+            return evaluate(expression, URI.create(uri), contentType);
+        }catch (IllegalArgumentException ex){
+            logger.warn("Error parsing url: " + uri, ex);
+            return false;
+        }
     }
 
     public boolean evaluate(String expression, URI uri, Optional<String> contentType) {

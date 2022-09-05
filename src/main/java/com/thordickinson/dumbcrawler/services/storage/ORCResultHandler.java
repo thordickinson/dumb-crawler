@@ -1,5 +1,6 @@
 package com.thordickinson.dumbcrawler.services.storage;
 
+import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.util.ConfigurationSupport;
 import org.apache.orc.OrcConf;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.webcrawler.util.HumanReadable;
 
 @Service
-public class ORCResultHandler implements CrawlingResultHandler {
+public class ORCResultHandler extends AbstractCrawlingComponent implements CrawlingResultHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ORCResultHandler.class);
 
@@ -42,16 +43,21 @@ public class ORCResultHandler implements CrawlingResultHandler {
     private BytesColumnVector contentColumn;
     private VectorizedRowBatch batch;
     private int stripeSize = -1;
-    private CrawlingContext context;
+
+    public ORCResultHandler() {
+        super("orcStorage");
+    }
 
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
-        logger.debug("Handling result: {}", result.page().url());
-        if (!shouldSavePage(result)) {
-            context.increaseCounter("nonStoredPages");
+        if (!isEnabled()) return;
+        if (!evaluate(result.page().url())) {
+            increaseCounter("ignoredPages");
+            logger.trace("Ignoring url: {}", result.page().url());
             return;
         }
-        context.increaseCounter("storedPages");
+        logger.debug("Handling result: {}", result.page().url());
+        increaseCounter("storedPages");
         try {
             write(result);
         } catch (Exception ex) {
@@ -59,41 +65,18 @@ public class ORCResultHandler implements CrawlingResultHandler {
         }
     }
 
-    private boolean shouldSavePage(CrawlingResult result) {
-        try {
-            var uri = URI.create(result.requestedUrl());
-            if (uri.getHost() == null) {
-                logger.error("Null host detected: {}", result.requestedUrl());
-                return false;
-            }
-            if (!uri.getHost().matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$")) {
-                return false;
-            }
-            if (uri.getPath() == null || !uri.getPath().matches("^/(MCO|mco).*")) {
-                return false;
-            }
-        } catch (IllegalArgumentException ex) {
-            logger.warn("Error parsing uri: {}", result.requestedUrl());
-            return false;
-        }
-        return true;
-    }
-
-    public void initialize(CrawlingContext context) {
-        this.context = context;
+    @Override
+    protected void loadConfigurations(CrawlingContext context) {
         try {
             tryInitialize();
         } catch (Exception ex) {
-            throw new RuntimeException("Error initializing service", ex);
+            throw new RuntimeException("Error initializing orc file", ex);
         }
     }
 
     private void tryInitialize() throws IOException {
 
-        this.configuration = new ConfigurationSupport("orcStorage", context);
-        if(!configuration.isEnabled()){
-            return;
-        }
+        var context = getContext();
         var directory = context.getExecutionDir().resolve("orc");
         var fileName = "%s".formatted(context.getExecutionId());
 
@@ -133,7 +116,7 @@ public class ORCResultHandler implements CrawlingResultHandler {
         urlColumn.setRef(rowNum, urlBytes, 0, urlBytes.length);
         var content = page.page().content().get();
         contentColumn.setVal(rowNum, content.getBytes(StandardCharsets.UTF_8));
-        context.setCounter("orcWriterMemory", HumanReadable.formatBits(writer.estimateMemory()));
+        setCounter("orcWriterMemory", HumanReadable.formatBits(writer.estimateMemory()));
 
         if (batch.size == batch.getMaxSize()) {
             addRowBatch();

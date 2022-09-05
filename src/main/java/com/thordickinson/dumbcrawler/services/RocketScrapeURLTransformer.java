@@ -1,6 +1,7 @@
 package com.thordickinson.dumbcrawler.services;
 
 import com.jsoniter.any.Any;
+import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.URLTransformer;
 import com.thordickinson.dumbcrawler.util.ConfigurationSupport;
@@ -11,14 +12,21 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 @Service
-public class RocketScrapeURLTransformer implements URLTransformer {
+public class RocketScrapeURLTransformer extends AbstractCrawlingComponent implements URLTransformer {
 
     private static final Logger logger = LoggerFactory.getLogger(RocketScrapeURLTransformer.class);
-    private ConfigurationSupport config;
     private Optional<String> apiKey;
+
+    public RocketScrapeURLTransformer(){
+        super("rocketScrape");
+    }
 
     @Override
     public String transform(String url) {
+        if(!evaluate(url)){
+            logger.trace("Ignoring url: {}", url);
+            return url;
+        }
         if(apiKey.isEmpty()){
             logger.warn("RocketScrape transformer is disabled because no api key was set");
             return url;
@@ -28,8 +36,8 @@ public class RocketScrapeURLTransformer implements URLTransformer {
     }
 
     @Override
-    public void initialize(CrawlingContext context) {
-        config = new ConfigurationSupport("rocketScrape", context);
-        apiKey = config.getConfig("apiKey").map(Any::toString);
+    protected void loadConfigurations(CrawlingContext context) {
+        apiKey = getConfiguration("apiKey").map(Any::toString);
     }
+
 }

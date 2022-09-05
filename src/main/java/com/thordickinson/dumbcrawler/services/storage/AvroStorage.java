@@ -2,6 +2,7 @@ package com.thordickinson.dumbcrawler.services.storage;
 
 import java.io.IOException;
 
+import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.io.DatumWriter;
@@ -16,20 +17,26 @@ import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.dumbcrawler.services.storage.avro.schema.WebPage;
 
 @Service
-public class AvroStorage implements CrawlingResultHandler {
+public class AvroStorage extends AbstractCrawlingComponent implements CrawlingResultHandler {
 
     private static Logger logger = LoggerFactory.getLogger(AvroStorage.class);
     private DatumWriter<WebPage> writer = null;
     private DataFileWriter<WebPage> fileWriter;
     private CrawlingContext context;
 
-    @Override
-    public void initialize(CrawlingContext context) {
-        this.context = context;
+    public AvroStorage(){
+        super("avroStorage");
     }
 
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
+        if(isDisabled()) return;
+        var url = result.page().url();
+        if(!evaluate(url)){
+            logger.trace("Ignoring url: {}", url);
+            return;
+        }
+
         var record = createRecord(result);
         logger.debug("Saving page in avro format {}", record.getUrl());
         context.increaseCounter("storedPages");

@@ -10,5 +10,5 @@
     </root>
     <logger name="com.thordickinson.dumbcrawler.DumbCrawler" level="INFO" />
     <logger name="com.thordickinson.dumbcrawler.DumbCrawler.error" level="OFF" />
-    <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="DEBUG" />
+    <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="INFO" />
 </configuration>

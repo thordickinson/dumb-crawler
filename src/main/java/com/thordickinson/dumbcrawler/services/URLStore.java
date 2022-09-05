@@ -38,14 +38,17 @@ public class URLStore {
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
-    private Stream<PriorityFilter> priorityFilters;
+    private List<PriorityFilter> priorityFilters;
+    private Optional<String> urlFilter = Optional.empty();
     private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
 
     public URLStore(CrawlingContext context) {
         this.context = context;
         cachedConnection = createConnection();
         priorityFilters = context.getConfig("crawler.priorities").map(Any::asList)
-                .map(l -> l.stream().map(this::makeFilter)).orElseGet(Stream::empty);
+                .map(l -> l.stream().map(this::makeFilter).collect(Collectors.toList()))
+                .orElseGet(Collections::emptyList);
+        urlFilter = context.getConfig("crawler.urlFilter").map(Any::toString);
     }
 
     private PriorityFilter makeFilter(Any value){
@@ -120,26 +123,17 @@ public class URLStore {
         return cachedConnection;
     }
 
-    private boolean shouldAddLink(ParsedURI uri) {
-        if (uri.originalUri().length() > 1024) {
-            logger.warn("Link is too long: [{}]", uri.originalUri());
-            return false;
-        }
-        if (uri.host().map(h -> h.matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$"))
-                .orElse(false)) {
-            return true;
-        }
-        if (uri.path().map(p -> p.startsWith("/_LICENSE*PLATE*LAST*DIGIT")).orElse(false)) {
-            return false;
-        }
-
-        return false;
+    private boolean shouldAddLink(String uri) {
+        var result = urlFilter.map(r -> expressionEvaluator.evaluate(r, uri)).orElse(true);
+        logger.trace("URL filtered [{}]: {}", result, uri);
+        return result;
     }
 
     private int getPriority(String url) {
-        var priority = priorityFilters.filter(f -> expressionEvaluator.evaluate(f.filter(), url))
+        var priority = priorityFilters.stream()
+                .filter(f -> expressionEvaluator.evaluate(f.filter(), url))
                 .findFirst().map(f -> f.value()).orElse(0);
-        logger.debug("URL priority: [{}]: {}", priority, url);
+        logger.trace("URL priority: [{}]: {}", priority, url);
         return priority;
     }
 
@@ -147,8 +141,7 @@ public class URLStore {
         if (urls.isEmpty())
             return false;
 
-        var filtered = urls.stream().map(ParsedURI::fromString).filter(Optional::isPresent).map(Optional::get)
-                .filter(this::shouldAddLink).map(ParsedURI::originalUri)
+        var filtered = urls.stream().filter(this::shouldAddLink)
                 .collect(Collectors.toList());
 
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
