@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 
 import com.jsoniter.any.Any;
-import static com.thordickinson.webcrawler.util.JsonUtil.*;
+import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 import org.slf4j.Logger;
@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.util.ParsedURI;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 

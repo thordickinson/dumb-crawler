@@ -1,4 +1,4 @@
-package com.thordickinson.webcrawler.util;
+package com.thordickinson.dumbcrawler.util;
 
 import com.jsoniter.any.Any;
 import com.jsoniter.spi.JsonException;

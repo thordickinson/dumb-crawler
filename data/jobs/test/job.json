@@ -3,7 +3,7 @@
     "filter": ""
   },
   "rocketScrape": {
-    "filter": "",
+    "disabled": true,
     "apiKey": "xx"
   },
   "crawler": {

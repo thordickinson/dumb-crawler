@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
-import static com.thordickinson.webcrawler.util.HumanReadable.*;
+import static com.thordickinson.dumbcrawler.util.HumanReadable.*;
 
 @Service
 public class DumbCrawler implements Runnable {

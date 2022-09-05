@@ -22,7 +22,6 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
     private static Logger logger = LoggerFactory.getLogger(AvroStorage.class);
     private DatumWriter<WebPage> writer = null;
     private DataFileWriter<WebPage> fileWriter;
-    private CrawlingContext context;
 
     public AvroStorage(){
         super("avroStorage");
@@ -39,7 +38,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
 
         var record = createRecord(result);
         logger.debug("Saving page in avro format {}", record.getUrl());
-        context.increaseCounter("storedPages");
+        increaseCounter("storedPages");
         try {
             write(record);
         } catch (IOException ex) {
@@ -48,6 +47,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
     }
 
     private DataFileWriter<WebPage> initializeWriter() throws IOException {
+        var context = getContext();
         var file = context.getExecutionDir().resolve("avro")
                 .resolve(context.getExecutionId() + ".avro");
         file.getParent().toFile().mkdirs();

@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 import com.jsoniter.JsonIterator;
 import com.jsoniter.any.Any;
-import com.thordickinson.webcrawler.util.JsonUtil;
+import com.thordickinson.dumbcrawler.util.JsonUtil;
 
 import lombok.Getter;
 

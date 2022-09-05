@@ -3,7 +3,7 @@ package com.thordickinson.dumbcrawler.api;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
-import static com.thordickinson.webcrawler.util.JsonUtil.*;
+import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
 import lombok.Getter;
 import org.slf4j.Logger;

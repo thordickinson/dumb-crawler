@@ -1,4 +1,4 @@
-package com.thordickinson.webcrawler.util;
+package com.thordickinson.dumbcrawler.util;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;

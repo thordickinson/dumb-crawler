@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.thordickinson.webcrawler.util.JsonUtil.get;
+import static com.thordickinson.dumbcrawler.util.JsonUtil.get;
 
 public class ConfigurationSupport {
     @Getter

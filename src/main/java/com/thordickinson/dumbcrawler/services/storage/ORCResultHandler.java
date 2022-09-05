@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -25,7 +24,7 @@ import org.apache.orc.Writer;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
-import com.thordickinson.webcrawler.util.HumanReadable;
+import com.thordickinson.dumbcrawler.util.HumanReadable;
 
 @Service
 public class ORCResultHandler extends AbstractCrawlingComponent implements CrawlingResultHandler {
