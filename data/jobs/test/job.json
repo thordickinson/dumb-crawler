@@ -1,25 +1,27 @@
 {
-  "seeds": [
-    "https://www.ics.uci.edu/~lopes/",
-    "https://www.ics.uci.edu/~welling/",
-    "https://www.ics.uci.edu/"
-  ],
-  "threadCount": 3,
   "avroStorage": {
     "filter": ""
   },
   "rocketScrape": {
     "filter": "",
-    "config": {
-      "apiKey": "xx"
-    }
+    "apiKey": "xx"
   },
   "crawler": {
+    "seeds": [
+      "https://www.ics.uci.edu/~lopes/",
+      "https://www.ics.uci.edu/~welling/",
+      "https://www.ics.uci.edu/"
+    ],
+    "threadCount": 3,
+    "priorities": [
+      {
+        "value": 100,
+        "urlFilter": "matches(path, '/(mcu|MCU).*')"
+      }
+    ],
     "filter": "endsWith(host,'.edu') and not matches(path, '.*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$')"
   },
   "stopper": {
-    "config": {
-      "timeout": 10
-    }
+    "timeout": 10
   }
 }

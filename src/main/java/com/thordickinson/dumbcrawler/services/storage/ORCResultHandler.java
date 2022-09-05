@@ -1,5 +1,6 @@
 package com.thordickinson.dumbcrawler.services.storage;
 
+import com.thordickinson.dumbcrawler.util.ConfigurationSupport;
 import org.apache.orc.OrcConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ public class ORCResultHandler implements CrawlingResultHandler {
 
     private final TypeDescription schema = TypeDescription
             .fromString("struct<timestamp:timestamp,url:string,content:string>");
+    private ConfigurationSupport configuration;
 
     private org.apache.hadoop.fs.Path target;
     private Writer writer;
@@ -88,6 +90,10 @@ public class ORCResultHandler implements CrawlingResultHandler {
 
     private void tryInitialize() throws IOException {
 
+        this.configuration = new ConfigurationSupport("orcStorage", context);
+        if(!configuration.isEnabled()){
+            return;
+        }
         var directory = context.getExecutionDir().resolve("orc");
         var fileName = "%s".formatted(context.getExecutionId());
 

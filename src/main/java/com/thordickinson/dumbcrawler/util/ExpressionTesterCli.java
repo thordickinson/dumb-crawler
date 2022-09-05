@@ -1,12 +1,10 @@
-package com.thordickinson.dumbcrawler;
+package com.thordickinson.dumbcrawler.util;
 
-import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 import org.apache.commons.lang3.StringUtils;
 
-import java.sql.SQLOutput;
 import java.util.Scanner;
 
-public class Expressions {
+public class ExpressionTesterCli {
 
     private final Scanner scanner = new Scanner(System.in);
     private final URLExpressionEvaluator evaluator = new URLExpressionEvaluator();
@@ -69,8 +67,7 @@ public class Expressions {
 
     }
 
-
-    private void run() {
+    public void run() {
         String input = null;
         do {
             input = printMenu();
@@ -82,7 +79,4 @@ public class Expressions {
         System.out.println("Bye!");
     }
 
-    public static void main(String[] args) {
-        new Expressions().run();
-    }
 }

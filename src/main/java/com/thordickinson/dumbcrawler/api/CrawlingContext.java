@@ -47,12 +47,12 @@ public class CrawlingContext {
     }
 
     public Set<String> getSeeds() {
-        return JsonUtil.get(jobDescriptor, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
+        return JsonUtil.get(jobDescriptor, "crawler.seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
                 .collect(Collectors.toSet())).orElse(Collections.emptySet());
     }
 
     public int getThreadCount() {
-        return JsonUtil.get(jobDescriptor, "threadCount").map(Any::toInt).orElseGet(() -> 3);
+        return JsonUtil.get(jobDescriptor, "crawler.threadCount").map(Any::toInt).orElseGet(() -> 3);
     }
 
     public Optional<Any> getConfig(String path) {

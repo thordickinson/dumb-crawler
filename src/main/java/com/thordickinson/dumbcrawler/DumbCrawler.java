@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.services;
+package com.thordickinson.dumbcrawler;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +15,8 @@ import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.api.URLTransformer;
+import com.thordickinson.dumbcrawler.services.CrawlingTask;
+import com.thordickinson.dumbcrawler.services.URLStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
