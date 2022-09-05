@@ -1,4 +1,6 @@
+# Dumb Crawler
 
+This is a multithread crawler to extract data from web. Can store the result html into different formats, like Avro and ORC.
 
 ## Configuration
 
