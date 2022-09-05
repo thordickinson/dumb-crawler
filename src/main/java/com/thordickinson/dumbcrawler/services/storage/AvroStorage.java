@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.dumbcrawler.services.storage.avro.schema.WebPage;
@@ -30,7 +29,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
         if(isDisabled()) return;
-        var url = result.page().url();
+        var url = result.page().originalUrl();
         if(!evaluate(url)){
             logger.trace("Ignoring url: {}", url);
             return;
@@ -81,7 +80,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
     }
 
     private WebPage createRecord(CrawlingResult result) {
-        var url = result.requestedUrl();
+        var url = result.page().originalUrl();
         var data = result.page().content().orElse("");
         logger.debug("Writing data for [{}]: {} ", data.length(), url);
         return WebPage.newBuilder()

@@ -95,17 +95,17 @@ public class DumbCrawler implements Runnable {
     private void processCompletedTasks(Set<CrawlingResult> completed) {
 
         var failed = completed.stream().filter(c -> c.error().isPresent()).collect(Collectors.toList());
-        store.setFailed(failed.stream().map(CrawlingResult::requestedUrl).collect(Collectors.toSet()));
+        store.setFailed(failed.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
         crawlingContext.increaseCounter("failedTasks", failed.size());
         var errors = failed.stream().map(c -> c.error().get()).map(e -> "error." + e.getClass().getName())
                 .collect(Collectors.toSet());
         errors.forEach(e -> crawlingContext.increaseCounter(e));
         failed.forEach(f -> {
-            errorLogger.warn("Error getting url {}", f.requestedUrl(), f.error().get());
+            errorLogger.warn("Error getting url {}", f.page().originalUrl(), f.error().get());
         });
 
         var success = completed.stream().filter(c -> c.error().isEmpty()).collect(Collectors.toList());
-        store.setVisited(success.stream().map(CrawlingResult::requestedUrl).collect(Collectors.toSet()));
+        store.setVisited(success.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
         var links = success.stream().flatMap(c -> c.links().stream()).collect(Collectors.toSet());
         store.addURLs(links);
         for (var result : success) {

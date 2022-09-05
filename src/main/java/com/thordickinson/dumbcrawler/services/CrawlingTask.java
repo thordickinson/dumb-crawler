@@ -38,7 +38,7 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         CrawledPage page = null;
         Exception exception = null;
         try {
-            page = crawl(transformedUrl, links);
+            page = crawl(links);
         } catch (IOException ex) {
             logger.debug("Error while fetching page", ex);
             page = createErrorPage(originalUrl);
@@ -49,13 +49,13 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         return new CrawlingResult(transformedUrl, page, links, startedAt, endedAt, Optional.ofNullable(exception));
     }
 
-    private CrawledPage crawl(String url, Collection<String> linkContainer) throws IOException {
+    private CrawledPage crawl(Collection<String> linkContainer) throws IOException {
         var attempt = 0;
         IOException lastException = null;
         do {
             attempt++;
             try {
-                return doCrawl(url, linkContainer);
+                return doCrawl(linkContainer);
             } catch (IOException ex) {
                 lastException = ex;
             }
@@ -67,29 +67,29 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         return new CrawledPage(originalUrl, -1, Optional.empty(), Optional.empty());
     }
 
-    private CrawledPage doCrawl(String url, Collection<String> linkContainer) throws IOException {
+    private CrawledPage doCrawl(Collection<String> linkContainer) throws IOException {
         try {
             var document = Jsoup.connect(transformedUrl).timeout(timeout).get();
             var html = document.html();
             if (StringUtils.isBlank(html)) {
-                logger.error("Parsed html is blank, {}", url);
+                logger.error("Parsed html is blank, {}", originalUrl);
             }
             var links = document.select("a")
                     .stream().map(l -> l.absUrl("href"))
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toSet());
             if (links.size() > 300) {
-                logger.warn("Page {} has more than 300 links", url);
+                logger.warn("Page {} has more than 300 links", originalUrl);
             }
             linkContainer.addAll(links);
-            return new CrawledPage(url, 200, HTML, Optional.of(html));
+            return new CrawledPage(originalUrl, 200, HTML, Optional.of(html));
         } catch (HttpStatusException ex) {
             // TODO: Handle 500 errors
-            logger.debug("Error getting url {}", url, ex);
-            return new CrawledPage(url, ex.getStatusCode(), Optional.empty(), Optional.empty());
+            logger.debug("Error getting url {}", originalUrl, ex);
+            return new CrawledPage(originalUrl, ex.getStatusCode(), Optional.empty(), Optional.empty());
         } catch (UnsupportedMimeTypeException ex) {
-            logger.debug("Error getting url {}", url, ex);
-            return new CrawledPage(url, 200, Optional.of(ex.getMimeType()), Optional.empty());
+            logger.debug("Error getting url {}", originalUrl, ex);
+            return new CrawledPage(originalUrl, 200, Optional.of(ex.getMimeType()), Optional.empty());
         }
     }
 }

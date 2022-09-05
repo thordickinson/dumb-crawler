@@ -38,7 +38,7 @@ public class ConfigurationSupport {
     }
 
     public boolean evaluateFilter(CrawlingResult result){
-        return evaluateFilter(result.requestedUrl(), result.page().contentType());
+        return evaluateFilter(result.page().originalUrl(), result.page().contentType());
     }
 
     public Optional<Any> getConfig(String key) {

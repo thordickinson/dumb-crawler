@@ -1,2 +1,3 @@
 logging.file: ./data/logs/crawl.log
+logging.config: ./conf/logback.xml
 

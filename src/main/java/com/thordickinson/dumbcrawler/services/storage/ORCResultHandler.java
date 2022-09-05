@@ -50,17 +50,18 @@ public class ORCResultHandler extends AbstractCrawlingComponent implements Crawl
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
         if (!isEnabled()) return;
-        if (!evaluate(result.page().url())) {
+        var url = result.page().originalUrl();
+        if (!evaluate(url)) {
             increaseCounter("ignoredPages");
-            logger.trace("Ignoring url: {}", result.page().url());
+            logger.trace("Ignoring url: {}", url);
             return;
         }
-        logger.debug("Handling result: {}", result.page().url());
+        logger.debug("Handling result: {}", url);
         increaseCounter("storedPages");
         try {
             write(result);
         } catch (Exception ex) {
-            logger.error("Error writing page: {}", result.requestedUrl(), ex);
+            logger.error("Error writing page: {}", url, ex);
         }
     }
 
@@ -104,14 +105,15 @@ public class ORCResultHandler extends AbstractCrawlingComponent implements Crawl
 
     public void write(CrawlingResult page) throws IOException {
 
+        var url = page.page().originalUrl();
         if (page.page().content().isEmpty()) {
-            logger.warn("Empty content received: {} -> {}", page.page().resultCode(), page.requestedUrl());
+            logger.warn("Empty content received: {} -> {}", page.page().resultCode(), url);
             return;
         }
 
         int rowNum = batch.size++;
         timestampColumn.set(rowNum, Timestamp.from(Instant.now()));
-        var urlBytes = page.requestedUrl().getBytes(StandardCharsets.UTF_8);
+        var urlBytes = url.getBytes(StandardCharsets.UTF_8);
         urlColumn.setRef(rowNum, urlBytes, 0, urlBytes.length);
         var content = page.page().content().get();
         contentColumn.setVal(rowNum, content.getBytes(StandardCharsets.UTF_8));
