@@ -43,7 +43,7 @@ public class ExpressionTesterCli {
 
     private void updateUri() {
         String uri = readInput("Enter the new url");
-        if (StringUtils.isNotBlank(uri)) {
+        if (StringUtils.isBlank(uri)) {
             System.out.println("Canceled");
             return;
         }
