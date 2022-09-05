@@ -42,7 +42,6 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
 
-    private boolean stopRequested = false;
     private boolean stopped = false;
     private long sleepTime = 1000;
     private ThreadPoolExecutor executor;
@@ -69,6 +68,7 @@ public class DumbCrawler implements Runnable {
         if (completedTasks.size() > 0) {
             processCompletedTasks(completedTasks);
         }
+
         scheduleNewTasks();
         printCounters();
         sleep();
@@ -194,7 +194,7 @@ public class DumbCrawler implements Runnable {
     @PreDestroy
     public void stop() {
         logger.info("Stop requested, waiting for tasks to complete");
-        stopRequested = true;
+        crawlingContext.stopCrawling();
         if (executor != null) {
             awaitTermination(10);
         }
@@ -202,7 +202,7 @@ public class DumbCrawler implements Runnable {
     }
 
     private void scheduleNewTasks() {
-        if (stopRequested) {
+        if (crawlingContext.isStopRequested()) {
             var active = executor.getActiveCount();
             var queue = executor.getQueue();
             if (queue.size() > 0) {

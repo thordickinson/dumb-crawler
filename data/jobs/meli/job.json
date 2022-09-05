@@ -7,13 +7,17 @@
     "seeds": [
       "https://vehiculos.mercadolibre.com.co/"
     ],
-    "threadCount": 20,
+    "threadCount": 18,
     "urlFilter": "matches(host, '(carro|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)",
     "priorities": [
        {"urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')", "priority": 100}
     ]
   },
   "avroStorage": {
+    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
+  },
+  "taskKiller": {
+    "timeout": "20m",
     "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
   }
 }
