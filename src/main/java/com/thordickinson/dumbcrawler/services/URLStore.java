@@ -123,6 +123,10 @@ public class URLStore {
     }
 
     private boolean shouldAddLink(String uri) {
+        if(!uri.startsWith("http")){
+            logger.trace("Url ignored, protocol is not http or https {}", uri);
+            return false;
+        }
         var result = urlFilter.map(r -> expressionEvaluator.evaluate(r, uri)).orElse(true);
         logger.trace("URL filtered [{}]: {}", result, uri);
         return result;
@@ -136,12 +140,12 @@ public class URLStore {
         return priority;
     }
 
-    private boolean addUrlsInternal(Collection<String> urls) {
+    private boolean addUrlsInternal(Collection<String> urls, boolean filter) {
         if (urls.isEmpty())
             return false;
 
-        var filtered = urls.stream().filter(this::shouldAddLink)
-                .collect(Collectors.toList());
+        var filtered = filter? urls.stream().filter(this::shouldAddLink)
+                .collect(Collectors.toList()) : new ArrayList<>(urls);
 
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
@@ -181,11 +185,11 @@ public class URLStore {
     public boolean addURLs(Set<String> urls) {
         logger.debug("Receiving {} urls to process", urls.size());
         var chunks = Lists.partition(new ArrayList<>(urls), 50);
-        return chunks.stream().map(this::addUrlsInternal).reduce((a, b) -> a || b).orElse(false);
+        return chunks.stream().map(s -> addUrlsInternal(s, true)).reduce((a, b) -> a || b).orElse(false);
     }
 
     public void addSeeds(Set<String> seeds) {
-        this.addURLs(seeds);
+        this.addUrlsInternal(seeds, false);
     }
 
     private static String formatUrls(Set<String> urls) {
