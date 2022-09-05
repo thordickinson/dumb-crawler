@@ -19,14 +19,16 @@ import com.thordickinson.dumbcrawler.api.CrawlingResult;
 
 public class CrawlingTask implements Callable<CrawlingResult> {
 
-    private final String url;
+    private final String originalUrl;
+    private final String transformedUrl;
     private static Optional<String> HTML = Optional.of("text/html");
     private static final Logger logger = LoggerFactory.getLogger(CrawlingTask.class);
     private int timeout = 30 * 1000;
     private int maxRetryCount = 3;
 
-    public CrawlingTask(String url) {
-        this.url = url;
+    public CrawlingTask(String originalUrl, String transformedUrl) {
+        this.originalUrl = originalUrl;
+        this.transformedUrl = transformedUrl;
     }
 
     @Override
@@ -36,15 +38,15 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         CrawledPage page = null;
         Exception exception = null;
         try {
-            page = crawl(url, links);
+            page = crawl(transformedUrl, links);
         } catch (IOException ex) {
             logger.debug("Error while fetching page", ex);
-            page = createErrorPage(url);
+            page = createErrorPage(originalUrl);
             exception = ex;
         }
 
         long endedAt = System.currentTimeMillis();
-        return new CrawlingResult(url, page, links, startedAt, endedAt, Optional.ofNullable(exception));
+        return new CrawlingResult(transformedUrl, page, links, startedAt, endedAt, Optional.ofNullable(exception));
     }
 
     private CrawledPage crawl(String url, Collection<String> linkContainer) throws IOException {
@@ -61,15 +63,12 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         throw lastException;
     }
 
-    private CrawledPage createErrorPage(String url) {
-        return new CrawledPage(url, -1, Optional.empty(), Optional.empty());
+    private CrawledPage createErrorPage(String originalUrl) {
+        return new CrawledPage(originalUrl, -1, Optional.empty(), Optional.empty());
     }
 
     private CrawledPage doCrawl(String url, Collection<String> linkContainer) throws IOException {
         try {
-            // TODO: create url transformer
-            String transformedUrl = "https://api.rocketscrape.com/?apiKey=a8786555-59e6-4171-be58-804718a74a2a&url=%s"
-                    .formatted(url);
             var document = Jsoup.connect(transformedUrl).timeout(timeout).get();
             var html = document.html();
             if (StringUtils.isBlank(html)) {

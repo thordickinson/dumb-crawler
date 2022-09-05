@@ -8,7 +8,7 @@
         <appender-ref ref="FILE" />
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="com.thordickinson.dumbcrawler.services.DumbCrawler" level="INFO" />
-    <logger name="com.thordickinson.dumbcrawler.services.DumbCrawler.error" level="OFF" />
+    <logger name="com.thordickinson.dumbcrawler.DumbCrawler" level="INFO" />
+    <logger name="com.thordickinson.dumbcrawler.DumbCrawler.error" level="OFF" />
     <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="INFO" />
 </configuration>

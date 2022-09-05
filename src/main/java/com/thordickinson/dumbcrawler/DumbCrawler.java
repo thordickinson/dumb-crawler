@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.services;
+package com.thordickinson.dumbcrawler;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +14,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
+import com.thordickinson.dumbcrawler.api.URLTransformer;
+import com.thordickinson.dumbcrawler.services.CrawlingTask;
+import com.thordickinson.dumbcrawler.services.URLStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +26,7 @@ import org.springframework.stereotype.Service;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
-import static com.thordickinson.webcrawler.util.HumanReadable.*;
+import static com.thordickinson.dumbcrawler.util.HumanReadable.*;
 
 @Service
 public class DumbCrawler implements Runnable {
@@ -35,6 +37,8 @@ public class DumbCrawler implements Runnable {
     private URLStore store;
     @Autowired
     private ConfigurableApplicationContext appContext;
+    @Autowired
+    private List<URLTransformer> urlTransformers = Collections.emptyList();
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
 
@@ -138,6 +142,8 @@ public class DumbCrawler implements Runnable {
         crawlingContext = new CrawlingContext(jobId, executionId);
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
+        urlTransformers.forEach(t -> t.initialize(crawlingContext));
+
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
@@ -224,8 +230,15 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(CrawlingTask::new).map(executor::submit).collect(Collectors.toSet());
+        var newTasks = urls.stream().map(u -> new CrawlingTask(u, transformUrl(u)))
+                .map(executor::submit).collect(Collectors.toSet());
         runningTasks.addAll(newTasks);
+    }
+
+    private String transformUrl(String url){
+        String result  = url;
+        for(var t : urlTransformers) result = t.transform(result);
+        return result;
     }
 
     private void sleep() {

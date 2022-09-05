@@ -1,48 +1,27 @@
 {
-  "seeds": [
-    "https://www.ics.uci.edu/~lopes/",
-    "https://www.ics.uci.edu/~welling/",
-    "https://www.ics.uci.edu/"
-  ],
-  "threadCount": 3,
-  "orcStorage": {},
+  "avroStorage": {
+    "filter": ""
+  },
   "rocketScrape": {
-    "filters": [
-      {
-        "action": "reject"
-      }
-    ],
-    "config": {
-      "apiKey": "xx"
-    }
+    "disabled": true,
+    "apiKey": "xx"
   },
   "crawler": {
-    "filters": [
+    "seeds": [
+      "https://www.ics.uci.edu/~lopes/",
+      "https://www.ics.uci.edu/~welling/",
+      "https://www.ics.uci.edu/"
+    ],
+    "threadCount": 3,
+    "priorities": [
       {
-        "action": "reject"
-      },
-      {
-        "field": "uri.host",
-        "operator": "contains",
-        "argument": ".edu",
-        "action": "accept"
-      },
-      {
-        "field": "uri.path",
-        "operator": "pattern",
-        "argument": ".*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$",
-        "action": "reject"
+        "value": 100,
+        "urlFilter": "matches(path, '/(mcu|MCU).*')"
       }
-    ]
+    ],
+    "urlFilter": "endsWith(host,'.edu') and not matches(path, '.*\\.(jpg|jpeg|css|js|png|webp|mpeg|mpg|mp3|mp4|ogg|wav|iso|avi)$')"
   },
   "stopper": {
-    "config": {
-      "timeout": 10
-    },
-    "filters": [
-      {
-        "action": "accept"
-      }
-    ]
+    "timeout": 10
   }
 }

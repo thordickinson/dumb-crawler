@@ -4,24 +4,21 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PreDestroy;
 
+import com.jsoniter.any.Any;
+import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
+
+import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.util.ParsedURI;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -40,11 +37,25 @@ public class URLStore {
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
+    private List<PriorityFilter> priorityFilters;
+    private Optional<String> urlFilter = Optional.empty();
+    private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
 
     public URLStore(CrawlingContext context) {
         this.context = context;
         cachedConnection = createConnection();
+        priorityFilters = context.getConfig("crawler.priorities").map(Any::asList)
+                .map(l -> l.stream().map(this::makeFilter).collect(Collectors.toList()))
+                .orElseGet(Collections::emptyList);
+        urlFilter = context.getConfig("crawler.urlFilter").map(Any::toString);
     }
+
+    private PriorityFilter makeFilter(Any value){
+        var filter = get(value, "urlFilter").map(Any::toString).orElse(null);
+        var priority = get(value, "priority").map(Any::toInt).orElse(0);
+        return new PriorityFilter(filter, priority);
+    }
+
 
     private void loadCounters(Connection connection) {
         var sql = "select status, count(*) as count from links group by status";
@@ -111,33 +122,30 @@ public class URLStore {
         return cachedConnection;
     }
 
-    private boolean shouldAddLink(ParsedURI uri) {
-        if (uri.originalUri().length() > 1024) {
-            logger.warn("Link is too long: [{}]", uri.originalUri());
+    private boolean shouldAddLink(String uri) {
+        if(!uri.startsWith("http")){
+            logger.trace("Url ignored, protocol is not http or https {}", uri);
             return false;
         }
-        if (uri.host().map(h -> h.matches("^(carro|carros|vehiculo|vehiculos)\\.mercadolibre\\.com\\.co$"))
-                .orElse(false)) {
-            return true;
-        }
-        if (uri.path().map(p -> p.startsWith("/_LICENSE*PLATE*LAST*DIGIT")).orElse(false)) {
-            return false;
-        }
-
-        return false;
+        var result = urlFilter.map(r -> expressionEvaluator.evaluate(r, uri)).orElse(true);
+        logger.trace("URL filtered [{}]: {}", result, uri);
+        return result;
     }
 
-    private int getPriority(ParsedURI uri) {
-        return uri.path().map(u -> u.toLowerCase().startsWith("/mco") ? 100 : 0).orElse(0);
+    private int getPriority(String url) {
+        var priority = priorityFilters.stream()
+                .filter(f -> expressionEvaluator.evaluate(f.filter(), url))
+                .findFirst().map(f -> f.value()).orElse(0);
+        logger.trace("URL priority: [{}]: {}", priority, url);
+        return priority;
     }
 
-    private boolean addUrlsInternal(Collection<String> urls) {
+    private boolean addUrlsInternal(Collection<String> urls, boolean filter) {
         if (urls.isEmpty())
             return false;
 
-        var filtered = urls.stream().map(ParsedURI::fromString).filter(Optional::isPresent).map(Optional::get)
-                .filter(this::shouldAddLink).map(ParsedURI::originalUri)
-                .collect(Collectors.toList());
+        var filtered = filter? urls.stream().filter(this::shouldAddLink)
+                .collect(Collectors.toList()) : new ArrayList<>(urls);
 
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
@@ -154,8 +162,8 @@ public class URLStore {
         toInsert.removeAll(existent);
         if (toInsert.isEmpty())
             return false;
-        var prioritized = toInsert.stream().map(ParsedURI::fromString).filter(Optional::isPresent).map(Optional::get)
-                .collect(Collectors.toMap(ParsedURI::originalUri, u -> getPriority(u)));
+        var prioritized = toInsert.stream()
+                .collect(Collectors.toMap(u -> u, u -> getPriority(u)));
 
         context.increaseCounter("discoveredUrls", toInsert.size());
 
@@ -175,13 +183,13 @@ public class URLStore {
     }
 
     public boolean addURLs(Set<String> urls) {
-        logger.debug("Receiving {} urls to process, spliting in batches", urls.size());
+        logger.debug("Receiving {} urls to process", urls.size());
         var chunks = Lists.partition(new ArrayList<>(urls), 50);
-        return chunks.stream().map(this::addUrlsInternal).reduce((a, b) -> a || b).orElse(false);
+        return chunks.stream().map(s -> addUrlsInternal(s, true)).reduce((a, b) -> a || b).orElse(false);
     }
 
     public void addSeeds(Set<String> seeds) {
-        this.addURLs(seeds);
+        this.addUrlsInternal(seeds, false);
     }
 
     private static String formatUrls(Set<String> urls) {
@@ -233,3 +241,7 @@ public class URLStore {
         }
     }
 }
+
+record PriorityFilter(String filter, Integer value){
+}
+
