@@ -1,5 +1,6 @@
 package com.thordickinson.dumbcrawler.util;
 
+import com.jsoniter.ValueType;
 import com.jsoniter.any.Any;
 import com.jsoniter.spi.JsonException;
 
@@ -43,10 +44,10 @@ public class JsonUtil {
     public static Optional<Any> get(Any json, List<String> path) {
         if (path.isEmpty()) return Optional.of(json);
         var next = path.get(0);
-        if (!json.keys().contains(next)) {
+        var nextValue = json.get(next);
+        if(nextValue.valueType() == ValueType.INVALID){
             return Optional.empty();
         }
-        var nextValue = json.get(next);
         return get(nextValue, path.subList(1, path.size()));
     }
 }

@@ -1,0 +1,96 @@
+{
+  "modelInfo": {
+    "vehicle_year": {
+      "name": "2016"
+    },
+    "model": {
+      "name": "Sail",
+      "id": "2109385"
+    },
+    "brand": {
+      "name": "Chevrolet",
+      "id": "58955"
+    }
+  },
+  "price": {
+    "currency": "COP",
+    "value": 36000000
+  },
+  "location": {
+    "city": "Bogotá D.C.",
+    "neighborhood": "La Campiña",
+    "sector": "Suba"
+  },
+  "basic": {
+    "description": "Excelente estado \nDocumentos al día\nListo para traspaso\nÚnica dueña.",
+    "id": "MCO954771520",
+    "url": "https://carro.mercadolibre.com.co/MCO-954771520-chevrolet-sail-_JM",
+    "timestamp": 1662392534741
+  },
+  "pictures": {
+    "ids": [
+      "948439-MLA51395015237_092022",
+      "883384-MCO51393421520_092022",
+      "685009-MCO51393381707_092022",
+      "736260-MCO51393406616_092022",
+      "647106-MCO51393412572_092022",
+      "688443-MCO51393323816_092022",
+      "873909-MCO51393557022_092022",
+      "644374-MCO51393432560_092022",
+      "927869-MCO51393295903_092022",
+      "987678-MCO51393406617_092022",
+      "783103-MCO51393557019_092022",
+      "631337-MCO51393305887_092022",
+      "665082-MCO51393462388_092022",
+      "915918-MCO51393311891_092022",
+      "752567-MCO51393557021_092022",
+      "989550-MCO51393388709_092022",
+      "691068-MCO51393311892_092022",
+      "683127-MCO51393305889_092022",
+      "790363-MCO51393397639_092022",
+      "608870-MCO51393372703_092022",
+      "726672-MCO51393305886_092022",
+      "955667-MCO51393345720_092022",
+      "605356-MCO51393318836_092022",
+      "990076-MCO51393462389_092022",
+      "877791-MCO51393684255_092022"
+    ],
+    "pictureConfig": {
+      "template": "https:\u002F\u002Fhttp2.mlstatic.com\u002FD_NQ_NP_{id}-O.jpg",
+      "template_thumbnail": "https:\u002F\u002Fhttp2.mlstatic.com\u002FD_Q_NP_{id}-R.jpg",
+      "template_zoom": "https:\u002F\u002Fhttp2.mlstatic.com\u002FD_NQ_NP_{id}-F.jpg",
+      "template_2x": "https:\u002F\u002Fhttp2.mlstatic.com\u002FD_NQ_NP_2X_{id}-F.jpg",
+      "template_thumbnail_2x": "https:\u002F\u002Fhttp2.mlstatic.com\u002FD_Q_NP_2X_{id}-R.jpg"
+    }
+  },
+  "techSpec": {
+    "\u00daltimo d\u00edgito de la placa": true,
+    "Paridad de la placa": true,
+    "Puertas": "4",
+    "Frenos ABS": true,
+    "Airbag para conductor y pasajero": true,
+    "Transmisi\u00f3n": "Mecánica",
+    "Vidrios el\u00e9ctricos": true,
+    "Tipo de combustible": "Gasolina",
+    "Alarma": true,
+    "Retrovisores el\u00e9ctricos": true,
+    "Kil\u00f3metros": "36000 km",
+    "A\u00f1o": "2016",
+    "Control de tracci\u00f3n": true,
+    "Capacidad de personas": true,
+    "Motor": "1.4",
+    "Climatizador": true,
+    "Tipo de carrocer\u00eda": "Sedán",
+    "Color": "Azul",
+    "Cierre centralizado de puertas": true,
+    "Marca": "Chevrolet",
+    "Modelo": "Sail",
+    "Reproductor de MP3": true,
+    "Regulaci\u00f3n de altura del volante": true,
+    "Entrada USB": true,
+    "Potencia": true,
+    "V\u00e1lvulas por cilindro": true,
+    "Tapizado de cuero": true,
+    "Aire acondicionado": true
+  }
+}

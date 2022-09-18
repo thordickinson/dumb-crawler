@@ -75,7 +75,9 @@ public class CrawlingTask implements Callable<CrawlingResult> {
                 logger.error("Parsed html is blank, {}", originalUrl);
             }
             var links = document.select("a")
-                    .stream().map(l -> l.absUrl("href"))
+                    .stream()
+                    .filter(l -> !"nofollow".equals(l.attr("rel")))
+                    .map(l -> l.absUrl("href"))
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toSet());
             if (links.size() > 300) {

@@ -32,4 +32,12 @@ public class HumanReadable {
                 duration.toSecondsPart());
     }
 
+    public static String formatDuration(long start, long end) {
+        return formatDuration(Duration.ofMillis(end - start));
+    }
+
+    public static String formatDuration(long start) {
+        return formatDuration(start, System.currentTimeMillis());
+    }
+
 }
