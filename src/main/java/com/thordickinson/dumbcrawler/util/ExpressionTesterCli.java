@@ -74,7 +74,7 @@ public class ExpressionTesterCli {
             return;
         }
         try {
-            var result = evaluator.evaluate(expression, url);
+            var result = evaluator.evaluateBoolean(expression, url);
             System.out.println("Result: " + result);
         } catch (Exception ex) {
             System.out.println("Error evaluating expression: " + ex.toString());

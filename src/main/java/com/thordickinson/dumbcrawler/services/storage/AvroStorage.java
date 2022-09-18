@@ -30,7 +30,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
     public void handleCrawlingResult(CrawlingResult result) {
         if(isDisabled()) return;
         var url = result.page().originalUrl();
-        if(!evaluate(url)){
+        if(!evaluateUrlFilter(url)){
             logger.trace("Ignoring url: {}", url);
             return;
         }

@@ -42,12 +42,16 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
         logger.info("{} component is {}", componentKey, (enabled ? "enabled" : "disabled"));
     }
 
-    protected boolean evaluate(String url) {
-        return urlFilter.map(f -> expressionEvaluator.evaluate(f, url)).orElse(true);
+    protected boolean evaluateUrlFilter(String url) {
+        return urlFilter.map(f -> expressionEvaluator.evaluateBoolean(f, url)).orElse(true);
     }
 
-    protected boolean evaluate(String url, Optional<String> contentType) {
-        return urlFilter.map(u -> expressionEvaluator.evaluate(u, url, contentType)).orElse(true);
+    protected boolean evaluateUrlFilter(String url, Optional<String> contentType) {
+        return urlFilter.map(u -> expressionEvaluator.evaluateBoolean(u, url, contentType)).orElse(true);
+    }
+
+    protected <T> Optional<T> evaluateExpression(Class<T> type, String expression, String url){
+        return expressionEvaluator.evaluateAs(type, expression, url);
     }
 
     protected boolean isDisabled() {

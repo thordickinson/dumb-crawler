@@ -13,12 +13,19 @@ import javax.annotation.PreDestroy;
 import com.jsoniter.any.Any;
 import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
+import com.thordickinson.dumbcrawler.util.JDBCUtil;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
+
+import lombok.Getter;
+import lombok.Setter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.DefaultURLHasher;
+import com.thordickinson.dumbcrawler.api.URLHasher;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -40,6 +47,9 @@ public class URLStore {
     private List<PriorityFilter> priorityFilters;
     private Optional<String> urlFilter = Optional.empty();
     private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
+    @Setter @Getter
+    private List<URLHasher> urlHashers = Collections.emptyList();
+    private final URLHasher defaultHasher =  new DefaultURLHasher();
 
     public URLStore(CrawlingContext context) {
         this.context = context;
@@ -97,9 +107,10 @@ public class URLStore {
         }
 
         logger.info("Initializing schema");
-        String table = "CREATE TABLE links (created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT PRIMARY KEY, " +
+        String table = "CREATE TABLE links (hash TEXT PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT, " +
                 "status INTEGER DEFAULT 0, priority INTEGER DEFAULT 0) WITHOUT ROWID";
         executeUpdate(connection, table);
+        executeUpdate(connection, "CREATE INDEX url_index ON links(url)");
         executeUpdate(connection, "CREATE INDEX status_index ON links(status)");
         executeUpdate(connection, "CREATE INDEX priority_index ON links(priority)");
         logger.info("Schema creation complete");
@@ -127,17 +138,25 @@ public class URLStore {
             logger.trace("Url ignored, protocol is not http or https {}", uri);
             return false;
         }
-        var result = urlFilter.map(r -> expressionEvaluator.evaluate(r, uri)).orElse(true);
+        var result = urlFilter.map(r -> expressionEvaluator.evaluateBoolean(r, uri)).orElse(true);
         logger.trace("URL filtered [{}]: {}", result, uri);
         return result;
     }
 
     private int getPriority(String url) {
         var priority = priorityFilters.stream()
-                .filter(f -> expressionEvaluator.evaluate(f.filter(), url))
+                .filter(f -> expressionEvaluator.evaluateBoolean(f.filter(), url))
                 .findFirst().map(f -> f.value()).orElse(0);
         logger.trace("URL priority: [{}]: {}", priority, url);
         return priority;
+    }
+
+    private String hashUrl(String url){
+        for(var hasher : urlHashers){
+            var result = hasher.hashUrl(url);
+            if(result.isPresent()) return result.get();
+        }
+        return defaultHasher.hashUrl(url).get();
     }
 
     private boolean addUrlsInternal(Collection<String> urls, boolean filter) {
@@ -152,29 +171,37 @@ public class URLStore {
         if (filtered.isEmpty())
             return false;
 
+        var hashedUrls =  new HashMap<String,String>();
+        for(var url : filtered){
+            hashedUrls.put(hashUrl(url), url);
+        }
+        
         var connection = getConnection();
-        var placeholders = String.join(", ", filtered.stream().map(f -> "?").collect(Collectors.toList()));
-        var exists = "SELECT url FROM links WHERE url in (%s)".formatted(placeholders);
-        var existent = query(connection, exists, filtered).stream().map(r -> r.get(0)).map(String::valueOf)
+        var hashList = new ArrayList<String>(hashedUrls.keySet());
+        var placeholders = JDBCUtil.generateParams(hashList.size());
+        var exists = "SELECT hash FROM links WHERE hash in %s".formatted(placeholders);
+        var existent = query(connection, exists,  hashList)
+        .stream().map(r -> r.get(0)).map(String::valueOf)
                 .collect(Collectors.toSet());
 
-        var toInsert = new HashSet<>(filtered);
-        toInsert.removeAll(existent);
+        var toInsert = new HashMap<>(hashedUrls);
+        for(var e : existent){
+            toInsert.remove(e);
+        }
         if (toInsert.isEmpty())
             return false;
-        var prioritized = toInsert.stream()
-                .collect(Collectors.toMap(u -> u, u -> getPriority(u)));
+        
+        var prioritized = toInsert.entrySet().stream().map(e -> new NewUrl(e.getValue(), e.getKey(), getPriority(e.getValue()))).collect(Collectors.toList());
 
-        context.increaseCounter("discoveredUrls", toInsert.size());
-
-        var sqlFormat = String.join(", ",
-                toInsert.stream().map(s -> "(?, ?)").collect(Collectors.toList()));
-        List<Object> params = prioritized.entrySet().stream().flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
-        queued += toInsert.size();
-        var insert = "INSERT INTO links (url, priority) VALUES %s".formatted(sqlFormat);
+        var sqlFormat = JDBCUtil.generateParams(3, prioritized.size());
+        List<Object> params = prioritized.stream().flatMap(e -> Stream.of(e.hash(), e.url(), e.priority()))
+        .collect(Collectors.toList());
+        var insert = "INSERT INTO links (hash, url, priority) VALUES %s".formatted(sqlFormat);
         executeUpdate(connection, insert, params);
-        logger.debug("New urls added: {}", toInsert.size());
+
+        context.increaseCounter("discoveredUrls", prioritized.size());
+        queued += prioritized.size();
+        logger.debug("New urls added: {}", prioritized.size());
         return true;
     }
 
@@ -243,5 +270,8 @@ public class URLStore {
 }
 
 record PriorityFilter(String filter, Integer value){
+}
+
+record NewUrl(String url, String hash, int priority){ 
 }
 

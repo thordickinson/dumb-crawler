@@ -16,7 +16,7 @@ Priorities are used to make the crawler to process some urls first than others, 
 "crawler": {
     "threadCount": 10, /*Number of concurrent requests*/
     "seeds": ["https://www.google.com/search?q=java"], /*the array of seeds, this will not be fitered*/
-    "urlFilter" : "startsWith(host, 'www.google.')", /*A filter expression*/
+    "urlFilter" : "startsWith(host, 'www.google.')", /*A filter expression, if the expression evaluates to false, then the url is ignored*/
     "priorities": [
        {"urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')", "priority": 100}
     ]
@@ -28,7 +28,7 @@ This module modifies the urls to use the RocketStcrape service
 
 ```json
 "rocketScrape": {
-    "apiKey": "xxxx-xxxxx-xxxx", /*Your rocketscrape url*/
+    "apiKey": "xxxx-xxxxx-xxxx", /*Your rocketscrape api key*/
     "urlFilter": "matches(protocol, '^https?$')" /*The expression used to filter urls that will be modified to use rocketscrape*/
 }
 
@@ -82,3 +82,5 @@ After first start, if there is no urls to add in the first iteration, it would n
 ## To do
 * Add a mechanism to kill the task if there is no running tasks and relevant urls.
 * Create a page validation mechanism to refetch pages if they are invalid.
+* Add a proxy configuration
+* Push data to S3 after completion

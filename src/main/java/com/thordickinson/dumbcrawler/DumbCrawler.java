@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.api.URLTransformer;
@@ -26,6 +27,9 @@ import org.springframework.stereotype.Service;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
+import com.thordickinson.dumbcrawler.api.DefaultURLHasher;
+import com.thordickinson.dumbcrawler.api.URLHasher;
+
 import static com.thordickinson.dumbcrawler.util.HumanReadable.*;
 
 @Service
@@ -41,6 +45,8 @@ public class DumbCrawler implements Runnable {
     private List<URLTransformer> urlTransformers = Collections.emptyList();
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
+    @Autowired
+    private List<URLHasher> urlHashers = Collections.emptyList();
 
     private boolean stopped = false;
     private long sleepTime = 1000;
@@ -143,6 +149,8 @@ public class DumbCrawler implements Runnable {
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
         urlTransformers.forEach(t -> t.initialize(crawlingContext));
+        urlHashers.forEach(t -> t.initialize(crawlingContext));
+        
 
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
                 TimeUnit.SECONDS,
@@ -151,6 +159,7 @@ public class DumbCrawler implements Runnable {
 
         // TODO: once this is started we should load counters in the context
         store = new URLStore(crawlingContext);
+        store.setUrlHashers(urlHashers);
         loopThread = new Thread(this, "main-thread");
         this.nextStatisticsPrint = System.currentTimeMillis() + 5000;
         this.stopped = false;

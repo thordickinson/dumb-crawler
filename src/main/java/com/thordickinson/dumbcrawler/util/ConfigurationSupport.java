@@ -34,7 +34,7 @@ public class ConfigurationSupport {
 
     public boolean evaluateFilter(String url, Optional<String> contentType){
         if(!enabled) return false;
-        return filter.map(f -> evaluator.evaluate(f, url, contentType)).orElse(true);
+        return filter.map(f -> evaluator.evaluateBoolean(f, url, contentType)).orElse(true);
     }
 
     public boolean evaluateFilter(CrawlingResult result){

@@ -51,7 +51,7 @@ public class ORCResultHandler extends AbstractCrawlingComponent implements Crawl
     public void handleCrawlingResult(CrawlingResult result) {
         if (!isEnabled()) return;
         var url = result.page().originalUrl();
-        if (!evaluate(url)) {
+        if (!evaluateUrlFilter(url)) {
             increaseCounter("ignoredPages");
             logger.trace("Ignoring url: {}", url);
             return;

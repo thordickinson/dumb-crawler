@@ -87,4 +87,22 @@ public class JDBCUtil {
         }
     }
 
+    public static String generateParams(int paramsPerRow, int rowCount){
+        String row = generateParams(paramsPerRow);
+        StringBuilder rows = new StringBuilder();
+        for(int i = 0; i < rowCount; i++){
+            rows.append( i ==0 ? row : ", " + row);
+        }
+        return rows.toString();
+    }
+
+    public static String generateParams(int qty){
+        StringBuilder row = new StringBuilder("( ");
+        for(int i = 0; i < qty; i++){
+            row.append( i == 0? "?" : ", ?");
+        }
+        row.append(" )");
+        return row.toString();
+    }
+
 }

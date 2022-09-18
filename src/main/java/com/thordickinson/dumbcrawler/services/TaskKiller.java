@@ -35,7 +35,7 @@ public class TaskKiller extends AbstractCrawlingComponent implements CrawlingRes
 
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
-        if (evaluate(result.page().originalUrl())) {
+        if (evaluateUrlFilter(result.page().originalUrl())) {
             rejectedPageCount = 0;
             lastValidPageTimestamp = System.currentTimeMillis();
         } else {

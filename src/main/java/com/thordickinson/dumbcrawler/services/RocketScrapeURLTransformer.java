@@ -24,7 +24,7 @@ public class RocketScrapeURLTransformer extends AbstractCrawlingComponent implem
     @Override
     public String transform(String url) {
         if(isDisabled()) return url;
-        if(!evaluate(url)){
+        if(!evaluateUrlFilter(url)){
             logger.trace("Ignoring url: {}", url);
             return url;
         }
