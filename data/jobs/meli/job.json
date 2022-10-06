@@ -23,5 +23,8 @@
   "taskKiller": {
     "timeout": "20m",
     "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
+  },
+  "timedTaskKiller": {
+    "timeout": "4h"
   }
 }
