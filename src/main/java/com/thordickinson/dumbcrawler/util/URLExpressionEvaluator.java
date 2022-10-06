@@ -32,14 +32,14 @@ public class URLExpressionEvaluator {
         try{
             var parsed = URI.create(url);
             var variables = new HashMap<String, Object>();
-            variables.put("url", new Value().setValue(url));
-            variables.put("protocol", new Value().setValue(parsed.getScheme()));
-            variables.put("host", new Value().setValue(parsed.getHost()));
-            variables.put("path", new Value().setValue(parsed.getPath()));
-            variables.put("port", new Value().setValue(new BigDecimal(parsed.getPort())));
-            variables.put("query", new Value().setValue(parsed.getQuery()));
-            variables.put("fragment", new Value().setValue(parsed.getFragment()));
-            variables.put("contentType", new Value().setValue(contentType.orElse(null)));
+            variables.put("url", url);
+            variables.put("protocol", parsed.getScheme());
+            variables.put("host", parsed.getHost());
+            variables.put("path", parsed.getPath());
+            variables.put("port", new BigDecimal(parsed.getPort()));
+            variables.put("query", parsed.getQuery());
+            variables.put("fragment", parsed.getFragment());
+            variables.put("contentType", contentType.orElse(null));
             var evaluator = ThreadLocalEvaluator.getThreadEvaluator();
             return evaluator.evaluateAs(expectedType, expression, variables);
         }catch(IllegalArgumentException ex){

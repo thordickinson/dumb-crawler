@@ -8,7 +8,7 @@ import org.jsoup.nodes.Document;
 
 import com.creativewidgetworks.expressionparser.*;
 
-public class ExpressionFunctions {
+public class ExpressionFunctions implements ExpressionConstants{
     private static final Set<String> COMMON_EXTENSIONS = Set.of("css", "js", "sass", "less", "ico", "jpeg", "jpg",
             "png",
             "webp",
@@ -16,10 +16,6 @@ public class ExpressionFunctions {
 
     private final Pattern RESOURCE_PATTERN = Pattern
             .compile(".*\\.(%s)$".formatted(String.join("|", COMMON_EXTENSIONS)));
-
-    private static final Value FALSE = new Value().setValue(false);
-    private static final Value TRUE = new Value().setValue(true);
-    private static final Value NULL = new Value();
 
     public static final ExpressionFunctions instance = new ExpressionFunctions();
 
