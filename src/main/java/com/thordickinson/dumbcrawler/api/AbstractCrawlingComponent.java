@@ -1,6 +1,7 @@
 package com.thordickinson.dumbcrawler.api;
 
 import com.jsoniter.any.Any;
+import com.thordickinson.dumbcrawler.util.ThreadLocalEvaluator;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
 import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Optional;
 
 public class AbstractCrawlingComponent implements CrawlingComponent {
@@ -52,6 +54,11 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
 
     protected <T> Optional<T> evaluateExpression(Class<T> type, String expression, String url){
         return expressionEvaluator.evaluateAs(type, expression, url);
+    }
+
+    protected <T> Optional<T> evaluate(Class<T> targetType, String expression, Map<String, Object> variables){
+        var evaluator = ThreadLocalEvaluator.getThreadEvaluator();
+        return evaluator.evaluateAs(targetType, expression, variables);
     }
 
     protected boolean isDisabled() {
