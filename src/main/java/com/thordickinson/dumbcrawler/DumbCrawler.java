@@ -101,6 +101,10 @@ public class DumbCrawler implements Runnable {
 
     private void processCompletedTasks(Set<CrawlingResult> completed) {
 
+        completed.forEach(c -> {
+            var counters = c.page().counters();
+            counters.forEach((k, v) -> crawlingContext.increaseCounter(k, v));
+        });
         var failed = completed.stream().filter(c -> c.error().isPresent()).collect(Collectors.toList());
         store.setFailed(failed.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
         crawlingContext.increaseCounter("failedTasks", failed.size());
@@ -150,6 +154,7 @@ public class DumbCrawler implements Runnable {
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
         urlTransformers.forEach(t -> t.initialize(crawlingContext));
+        contentValidators.forEach(t -> t.initialize(crawlingContext));
         urlHashers.forEach(t -> t.initialize(crawlingContext));
         
 

@@ -1,5 +1,7 @@
 package com.thordickinson.dumbcrawler.services;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -10,7 +12,14 @@ import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.api.ContentValidator;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
+/**
+ *
+ * "contentValidator": {
+ *   "validIf": "NOT matches(path, '^\/(MCO|mco)-[0-9]+.*') OR contains(html, 'technical_specifications')"
+ * }
+ */
 @Service
 public class ExpressionContentValidator extends AbstractCrawlingComponent implements ContentValidator  {
 
@@ -20,15 +29,23 @@ public class ExpressionContentValidator extends AbstractCrawlingComponent implem
         super("contentValidator");
     }
 
+    
     @Override
-    public void initialize(CrawlingContext context) {
-        expression = context.getConfig("expression").map(Any::toString);
+    public void loadConfigurations(CrawlingContext context) {
+        expression = getConfiguration("validIf").map(Any::toString);
+    }
+
+    private Map<String,Object> getVariables(String url, Document document){
+        Map<String,Object> map = new HashMap<String, Object>(URLExpressionEvaluator.getVariablesfromUrl(url).orElse(Collections.emptyMap()));
+        map.put("document", document);
+        map.put("html", document.html());
+        return map;
     }
 
     @Override
-    public boolean validateContent(Document document) {
+    public boolean validateContent(String url, Document document) {
         return expression.flatMap(e -> 
-            evaluate(Boolean.class, e, Map.of("document", document, "html", document.html()))
+            evaluate(Boolean.class, e, getVariables(url, document))
         ).orElse(true);
     }
 

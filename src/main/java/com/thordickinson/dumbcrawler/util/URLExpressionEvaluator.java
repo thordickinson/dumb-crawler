@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class URLExpressionEvaluator {
@@ -27,8 +29,10 @@ public class URLExpressionEvaluator {
         return evaluateAs(expectedType, expression, url, Optional.empty());
     }
 
-    public <T> Optional<T> evaluateAs(Class<T> expectedType, String expression, String url, Optional<String> contentType) {
-        if(StringUtils.isBlank(expression) || StringUtils.isBlank(url)) return Optional.empty();
+    public static Optional<Map<String, Object>> getVariablesfromUrl(String url) {
+        return getVariablesfromUrl(url, Optional.empty());
+    }
+    public static Optional<Map<String, Object>> getVariablesfromUrl(String url, Optional<String> contentType) {
         try{
             var parsed = URI.create(url);
             var variables = new HashMap<String, Object>();
@@ -40,8 +44,20 @@ public class URLExpressionEvaluator {
             variables.put("query", parsed.getQuery());
             variables.put("fragment", parsed.getFragment());
             variables.put("contentType", contentType.orElse(null));
-            var evaluator = ThreadLocalEvaluator.getThreadEvaluator();
-            return evaluator.evaluateAs(expectedType, expression, variables);
+            return Optional.of(variables);
+        }catch(IllegalArgumentException ex){
+            logger.warn("Error parsing url: " + url, ex);
+            return Optional.empty();
+        }
+    }
+
+
+    public <T> Optional<T> evaluateAs(Class<T> expectedType, String expression, String url, Optional<String> contentType) {
+        if(StringUtils.isBlank(expression) || StringUtils.isBlank(url)) return Optional.empty();
+        try{
+            return getVariablesfromUrl(url, contentType).flatMap(variables -> 
+                ThreadLocalEvaluator.getThreadEvaluator().evaluateAs(expectedType, expression, variables)
+            );
         }catch(IllegalArgumentException ex){
             logger.warn("Error parsing url: " + url, ex);
             return Optional.empty();
