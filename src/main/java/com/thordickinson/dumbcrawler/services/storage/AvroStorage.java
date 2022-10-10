@@ -47,8 +47,7 @@ public class AvroStorage extends AbstractCrawlingComponent implements CrawlingRe
 
     private DataFileWriter<WebPage> initializeWriter() throws IOException {
         var context = getContext();
-        var file = context.getExecutionDir().resolve("avro")
-                .resolve(context.getExecutionId() + ".avro");
+        var file = context.getExecutionDir().resolve("raw_pages.avro");
         file.getParent().toFile().mkdirs();
         logger.info("Avro file created: {}", file.toString());
         writer = new SpecificDatumWriter<>(WebPage.class);
