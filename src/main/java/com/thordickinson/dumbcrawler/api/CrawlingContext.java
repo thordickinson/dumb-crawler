@@ -44,8 +44,16 @@ public class CrawlingContext {
         this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
         jobDir = Path.of("./data/jobs").resolve(jobId);
         jobDescriptor = loadJob(jobDir);
-        executionDir = jobDir.resolve("executions").resolve(this.executionId);
+        executionDir = getOutDir(jobId, this.executionId);
         executionDir.toFile().mkdirs();
+    }
+
+    private Path getOutDir(String jobId, String executionId){
+        String outDir = System.getenv("DCRAWLER_OUT_DIR");
+        String userHome = System.getProperty("user.home");
+        String basePath = outDir == null? userHome : outDir;
+        var executionPath = Path.of(basePath, ".crawler", "jobs", jobId, "executions", executionId, "crawl");
+        return executionPath;
     }
 
     public Set<String> getSeeds() {
