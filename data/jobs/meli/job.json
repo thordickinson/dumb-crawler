@@ -26,5 +26,10 @@
   },
   "timedTaskKiller": {
     "timeout": "5h"
+  },
+  "forceRenderContentValidator" : {
+    "disabled": false,
+    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
+    "validIf": "containsElement(document, 'div.ui-pdp-specs')"
   }
 }

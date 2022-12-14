@@ -3,11 +3,7 @@ package com.thordickinson.dumbcrawler.util;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import com.creativewidgetworks.expressionparser.*;
 
@@ -103,7 +99,7 @@ public class ThreadLocalEvaluator implements ExpressionConstants {
     }
 
     private static void checkResultType(Class<?> expected, Value result) {
-        var compatibleTypes = COMPATIBLE_TYPES_MAP.get(result.getType());
+        var compatibleTypes = COMPATIBLE_TYPES_MAP.getOrDefault(result.getType(), Collections.emptySet());
         if (!compatibleTypes.contains(expected)) {
             throw new RuntimeException("Expression result is not of the expected type:  Expected: " +
                     expected.getSimpleName() + " -  Result: " + result.getType().name());

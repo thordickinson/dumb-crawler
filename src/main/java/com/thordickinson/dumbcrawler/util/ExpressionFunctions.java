@@ -62,7 +62,7 @@ public class ExpressionFunctions implements ExpressionConstants{
         String cssQuery = ((Token)stack.pop()).asString();
         Document doc = (Document)((Token)stack.pop()).asObject();
         var elements = doc.select(cssQuery);
-        return new Value().setValue(elements.isEmpty()? FALSE: TRUE);
+        return elements.isEmpty()? FALSE: TRUE;
     }
 
 }

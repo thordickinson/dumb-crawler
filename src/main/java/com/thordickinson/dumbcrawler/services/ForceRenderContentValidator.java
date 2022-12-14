@@ -21,12 +21,13 @@ import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
  * }
  */
 @Service
-public class ExpressionContentValidator extends AbstractCrawlingComponent implements ContentValidator  {
+public class ForceRenderContentValidator extends AbstractCrawlingComponent implements ContentValidator  {
 
     private Optional<String>  expression = Optional.empty();
 
-    public ExpressionContentValidator(){
-        super("contentValidator");
+
+    public ForceRenderContentValidator(){
+        super("forceRenderContentValidator");
     }
 
     
@@ -43,10 +44,16 @@ public class ExpressionContentValidator extends AbstractCrawlingComponent implem
     }
 
     @Override
-    public boolean validateContent(String url, Document document) {
-        return expression.flatMap(e -> 
-            evaluate(Boolean.class, e, getVariables(url, document))
+    public ValidationResult validateContent(String url, Document document) {
+        if(!evaluateUrlFilter(url)) return VALID;
+        var validPage = expression.flatMap(e ->
+                evaluate(Boolean.class, e, getVariables(url, document))
         ).orElse(true);
+        var renderingHints = new HashMap<String, String>();
+        if(!validPage){
+            renderingHints.put("rocketScrape.renderContent", "true");
+        }
+        return new ValidationResult(validPage, renderingHints);
     }
 
 }

@@ -245,16 +245,11 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(u -> new CrawlingTask(u, transformUrl(u), contentValidators))
+        var newTasks = urls.stream().map(u -> new CrawlingTask(u, contentValidators, urlTransformers))
                 .map(executor::submit).collect(Collectors.toSet());
         runningTasks.addAll(newTasks);
     }
 
-    private String transformUrl(String url){
-        String result  = url;
-        for(var t : urlTransformers) result = t.transform(result);
-        return result;
-    }
 
     private void sleep() {
         try {
