@@ -16,16 +16,12 @@ import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
-import lombok.Getter;
-import lombok.Setter;
-
+import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.api.DefaultURLHasher;
-import com.thordickinson.dumbcrawler.api.URLHasher;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -47,9 +43,6 @@ public class URLStore {
     private final List<PriorityFilter> priorityFilters;
     private Optional<String> urlFilter = Optional.empty();
     private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
-    @Setter @Getter
-    private List<URLHasher> urlHashers = Collections.emptyList();
-    private final URLHasher defaultHasher =  new DefaultURLHasher();
 
     public URLStore(CrawlingContext context) {
         this.context = context;
@@ -152,16 +145,12 @@ public class URLStore {
     }
 
     private String hashUrl(String url){
-        for(var hasher : urlHashers){
-            var result = hasher.hashUrl(url);
-            if(result.isPresent()) return result.get();
-        }
-        return defaultHasher.hashUrl(url).get();
+        return DigestUtils.md5Hex(url);
     }
 
-    private boolean addUrlsInternal(Collection<String> urls, boolean filter) {
+    private void addUrlsInternal(Collection<String> urls, boolean filter) {
         if (urls.isEmpty())
-            return false;
+            return;
 
         var filtered = filter? urls.stream().filter(this::shouldAddLink)
                 .toList() : new ArrayList<>(urls);
@@ -169,7 +158,7 @@ public class URLStore {
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
         if (filtered.isEmpty())
-            return false;
+            return;
 
         var hashedUrls =  new HashMap<String,String>();
         for(var url : filtered){
@@ -189,7 +178,7 @@ public class URLStore {
             toInsert.remove(e);
         }
         if (toInsert.isEmpty())
-            return false;
+            return;
         
         var prioritized = toInsert.entrySet().stream().map(e -> new NewUrl(e.getValue(), e.getKey(), getPriority(e.getValue()))).toList();
 
@@ -202,17 +191,16 @@ public class URLStore {
         context.increaseCounter("discoveredUrls", prioritized.size());
         queued += prioritized.size();
         logger.debug("New urls added: {}", prioritized.size());
-        return true;
     }
 
     public Map<String, Integer> getStatus() {
         return Map.of("QUEUED", queued, "PROCESSED", processed, "FAILED", failed);
     }
 
-    public boolean addURLs(Set<String> urls) {
+    public void addURLs(Set<String> urls) {
         logger.debug("Receiving {} urls to process", urls.size());
         var chunks = Lists.partition(new ArrayList<>(urls), 50);
-        return chunks.stream().map(s -> addUrlsInternal(s, true)).reduce((a, b) -> a || b).orElse(false);
+        chunks.forEach(s -> addUrlsInternal(s, true));
     }
 
     public void addSeeds(Set<String> seeds) {

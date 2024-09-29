@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;

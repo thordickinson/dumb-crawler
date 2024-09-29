@@ -3,6 +3,7 @@ package com.thordickinson.dumbcrawler.services;
 import java.time.Duration;
 
 import com.thordickinson.dumbcrawler.api.*;
+import com.thordickinson.dumbcrawler.util.ConfigurableCrawlingComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

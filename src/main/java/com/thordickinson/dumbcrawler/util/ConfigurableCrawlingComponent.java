@@ -1,7 +1,7 @@
-package com.thordickinson.dumbcrawler.api;
+package com.thordickinson.dumbcrawler.util;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
+import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import lombok.Getter;
 
 import java.util.Optional;

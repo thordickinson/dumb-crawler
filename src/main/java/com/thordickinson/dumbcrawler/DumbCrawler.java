@@ -17,6 +17,7 @@ import javax.annotation.PreDestroy;
 import com.thordickinson.dumbcrawler.api.*;
 import com.thordickinson.dumbcrawler.services.CrawlingTask;
 import com.thordickinson.dumbcrawler.services.URLStore;
+import com.thordickinson.dumbcrawler.services.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +38,11 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
     @Autowired
-    private List<URLHasher> urlHashers = Collections.emptyList();
-    @Autowired
     private List<ContentValidator> contentValidators = Collections.emptyList();
     @Autowired
     private HtmlRenderer renderer;
+    @Autowired
+    private StorageManager storageManager;
 
     private boolean stopped = false;
     private ThreadPoolExecutor executor;
@@ -96,7 +97,7 @@ public class DumbCrawler implements Runnable {
             var counters = c.page().counters();
             counters.forEach((k, v) -> crawlingContext.increaseCounter(k, v));
         });
-        var failed = completed.stream().filter(c -> c.error().isPresent()).collect(Collectors.toList());
+        var failed = completed.stream().filter(c -> c.error().isPresent()).toList();
         store.setFailed(failed.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
         crawlingContext.increaseCounter("failedTasks", failed.size());
         var errors = failed.stream().map(c -> c.error().get()).map(e -> "error." + e.getClass().getName())
@@ -106,7 +107,7 @@ public class DumbCrawler implements Runnable {
             errorLogger.warn("Error getting url {}", f.page().originalUrl(), f.error().get());
         });
 
-        var success = completed.stream().filter(c -> c.error().isEmpty()).collect(Collectors.toList());
+        var success = completed.stream().filter(c -> c.error().isEmpty()).toList();
         store.setVisited(success.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
         var links = success.stream().flatMap(c -> c.links().stream()).collect(Collectors.toSet());
         store.addURLs(links);
@@ -145,7 +146,6 @@ public class DumbCrawler implements Runnable {
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
         contentValidators.forEach(t -> t.initialize(crawlingContext));
-        urlHashers.forEach(t -> t.initialize(crawlingContext));
         
 
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
@@ -155,7 +155,6 @@ public class DumbCrawler implements Runnable {
 
         // TODO: once this is started we should load counters in the context
         store = new URLStore(crawlingContext);
-        store.setUrlHashers(urlHashers);
         Thread loopThread = new Thread(this, "main-thread");
         this.nextStatisticsPrint = System.currentTimeMillis() + 5000;
         this.stopped = false;

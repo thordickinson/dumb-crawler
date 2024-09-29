@@ -5,12 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.thordickinson.dumbcrawler.api.ConfigurableCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.ConfigurableCrawlingComponent;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.api.ContentValidator;
 import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;

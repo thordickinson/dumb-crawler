@@ -1,6 +1,6 @@
 package com.thordickinson.dumbcrawler.services.storage;
 
-import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 
