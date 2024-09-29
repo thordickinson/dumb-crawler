@@ -39,12 +39,12 @@ public class URLStore {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(URLStore.class);
-    private Connection cachedConnection;
+    private final Connection cachedConnection;
     private final CrawlingContext context;
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
-    private List<PriorityFilter> priorityFilters;
+    private final List<PriorityFilter> priorityFilters;
     private Optional<String> urlFilter = Optional.empty();
     private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
     @Setter @Getter
@@ -91,7 +91,7 @@ public class URLStore {
         if (refetch) {
             logger.warn("Marking all links for refetch");
             executeUpdate(connection, "UPDATE links SET status = 0"); // This will force to revisit all the pages
-            logger.warn("Refetch update completed");
+            logger.warn("fetch update completed");
         }
     }
 
@@ -146,7 +146,7 @@ public class URLStore {
     private int getPriority(String url) {
         var priority = priorityFilters.stream()
                 .filter(f -> expressionEvaluator.evaluateBoolean(f.filter(), url))
-                .findFirst().map(f -> f.value()).orElse(0);
+                .findFirst().map(PriorityFilter::value).orElse(0);
         logger.trace("URL priority: [{}]: {}", priority, url);
         return priority;
     }
@@ -164,7 +164,7 @@ public class URLStore {
             return false;
 
         var filtered = filter? urls.stream().filter(this::shouldAddLink)
-                .collect(Collectors.toList()) : new ArrayList<>(urls);
+                .toList() : new ArrayList<>(urls);
 
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
 
@@ -191,7 +191,7 @@ public class URLStore {
         if (toInsert.isEmpty())
             return false;
         
-        var prioritized = toInsert.entrySet().stream().map(e -> new NewUrl(e.getValue(), e.getKey(), getPriority(e.getValue()))).collect(Collectors.toList());
+        var prioritized = toInsert.entrySet().stream().map(e -> new NewUrl(e.getValue(), e.getKey(), getPriority(e.getValue()))).toList();
 
         var sqlFormat = JDBCUtil.generateParams(3, prioritized.size());
         List<Object> params = prioritized.stream().flatMap(e -> Stream.of(e.hash(), e.url(), e.priority()))
@@ -220,7 +220,7 @@ public class URLStore {
     }
 
     private static String formatUrls(Set<String> urls) {
-        return String.join(", ", urls.stream().map(s -> "'%s'".formatted(s)).collect(Collectors.toList()));
+        return urls.stream().map("'%s'"::formatted).collect(Collectors.joining(", "));
     }
 
     public void setVisited(Set<String> urls) {
@@ -249,7 +249,7 @@ public class URLStore {
         var sql = "SELECT url FROM links WHERE status = 0 ORDER BY priority DESC LIMIT ?";
         var result = query(getConnection(), sql, List.of(count));
         var unvisited = result.stream().map(r -> r.get(0)).map(String::valueOf).collect(Collectors.toSet());
-        var urlList = String.join(", ", unvisited.stream().map(s -> "'%s'".formatted(s)).collect(Collectors.toList()));
+        var urlList = unvisited.stream().map("'%s'"::formatted).collect(Collectors.joining(", "));
         var update = "UPDATE links SET status = 1 WHERE url IN (%s)".formatted(urlList);
         var updated = executeUpdate(getConnection(), update);
         logger.debug("Returned {} urls to process", updated);

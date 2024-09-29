@@ -3,12 +3,9 @@ package com.thordickinson.multiprocess.meli;
 import com.jsoniter.any.Any;
 import com.thordickinson.multiprocess.api.ProcessorTask;
 import com.thordickinson.multiprocess.api.TaskFactory;
-import com.thordickinson.multiprocess.impl.AvroDataSource;
 import com.thordickinson.multiprocess.api.MultiThreadProcessor;
-import com.thordickinson.multiprocess.impl.AvroWriterHandler;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class MeliDataExtractor implements TaskFactory<Any, Any> {
 

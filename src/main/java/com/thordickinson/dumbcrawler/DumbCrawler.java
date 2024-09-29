@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
-import com.thordickinson.dumbcrawler.api.URLTransformer;
+import com.thordickinson.dumbcrawler.api.*;
 import com.thordickinson.dumbcrawler.services.CrawlingTask;
 import com.thordickinson.dumbcrawler.services.URLStore;
 import org.slf4j.Logger;
@@ -22,12 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
-
-import com.thordickinson.dumbcrawler.api.ContentValidator;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.api.CrawlingResult;
-import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
-import com.thordickinson.dumbcrawler.api.URLHasher;
 
 import static com.thordickinson.dumbcrawler.util.HumanReadable.*;
 
@@ -41,24 +35,21 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private ConfigurableApplicationContext appContext;
     @Autowired
-    private List<URLTransformer> urlTransformers = Collections.emptyList();
-    @Autowired
     private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
     @Autowired
     private List<URLHasher> urlHashers = Collections.emptyList();
     @Autowired
     private List<ContentValidator> contentValidators = Collections.emptyList();
+    @Autowired
+    private HtmlRenderer renderer;
 
     private boolean stopped = false;
-    private long sleepTime = 1000;
     private ThreadPoolExecutor executor;
-    private Thread loopThread;
-    private Set<Future<CrawlingResult>> runningTasks = new HashSet<>();
+    private final Set<Future<CrawlingResult>> runningTasks = new HashSet<>();
     private CrawlingContext crawlingContext;
 
     private Set<String> seeds = Collections.emptySet();
     private long nextStatisticsPrint = -1;
-    private static long PRINT_TIMERS_TIMEOUT = 1000 * 60;
     private final Runtime rt = Runtime.getRuntime();
 
     @Override
@@ -72,7 +63,7 @@ public class DumbCrawler implements Runnable {
 
     private void runLoop() {
         var completedTasks = getCompletedTasks();
-        if (completedTasks.size() > 0) {
+        if (!completedTasks.isEmpty()) {
             processCompletedTasks(completedTasks);
         }
 
@@ -132,7 +123,7 @@ public class DumbCrawler implements Runnable {
 
     private void terminate() {
         logger.info("Ending crawling session");
-        resultHandlers.forEach(r -> r.destroy());
+        resultHandlers.forEach(CrawlingComponent::destroy);
         executor.shutdownNow();
     }
 
@@ -153,7 +144,6 @@ public class DumbCrawler implements Runnable {
         crawlingContext = new CrawlingContext(jobId, executionId);
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
         resultHandlers.forEach(h -> h.initialize(crawlingContext));
-        urlTransformers.forEach(t -> t.initialize(crawlingContext));
         contentValidators.forEach(t -> t.initialize(crawlingContext));
         urlHashers.forEach(t -> t.initialize(crawlingContext));
         
@@ -166,7 +156,7 @@ public class DumbCrawler implements Runnable {
         // TODO: once this is started we should load counters in the context
         store = new URLStore(crawlingContext);
         store.setUrlHashers(urlHashers);
-        loopThread = new Thread(this, "main-thread");
+        Thread loopThread = new Thread(this, "main-thread");
         this.nextStatisticsPrint = System.currentTimeMillis() + 5000;
         this.stopped = false;
         loopThread.start();
@@ -177,6 +167,7 @@ public class DumbCrawler implements Runnable {
         var now = System.currentTimeMillis();
         if (nextStatisticsPrint > now)
             return;
+        long PRINT_TIMERS_TIMEOUT = 1000 * 60;
         nextStatisticsPrint = now + PRINT_TIMERS_TIMEOUT;
         var ctx = this.crawlingContext;
 
@@ -220,7 +211,7 @@ public class DumbCrawler implements Runnable {
         if (crawlingContext.isStopRequested()) {
             var active = executor.getActiveCount();
             var queue = executor.getQueue();
-            if (queue.size() > 0) {
+            if (!queue.isEmpty()) {
                 logger.info("Removing {} tasks from queue", queue.size());
                 queue.clear();
             }
@@ -245,7 +236,7 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(u -> new CrawlingTask(u, contentValidators, urlTransformers))
+        var newTasks = urls.stream().map(u -> new CrawlingTask(u, contentValidators))
                 .map(executor::submit).collect(Collectors.toSet());
         runningTasks.addAll(newTasks);
     }
@@ -254,8 +245,10 @@ public class DumbCrawler implements Runnable {
     private void sleep() {
         try {
             logger.trace("Sleeping...");
+            long sleepTime = 1000;
             Thread.sleep(sleepTime);
         } catch (InterruptedException ex) {
+            //Exception is ignored
         }
     }
 

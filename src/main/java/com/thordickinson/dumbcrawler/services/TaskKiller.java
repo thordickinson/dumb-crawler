@@ -2,18 +2,15 @@ package com.thordickinson.dumbcrawler.services;
 
 import java.time.Duration;
 
+import com.thordickinson.dumbcrawler.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.AbstractCrawlingComponent;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
-import com.thordickinson.dumbcrawler.api.CrawlingResult;
-import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.dumbcrawler.util.HumanReadable;
 import com.thordickinson.dumbcrawler.util.Misc;
 
-public class TaskKiller extends AbstractCrawlingComponent implements CrawlingResultHandler {
+public class TaskKiller extends ConfigurableCrawlingComponent implements CrawlingResultHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskKiller.class);
 

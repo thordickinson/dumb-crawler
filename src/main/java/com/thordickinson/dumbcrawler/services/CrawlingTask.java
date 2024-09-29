@@ -5,7 +5,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import com.thordickinson.dumbcrawler.api.URLTransformer;
+import com.thordickinson.dumbcrawler.api.*;
+import com.thordickinson.dumbcrawler.services.renderer.SimpleHttpRenderer;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
@@ -14,34 +15,21 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.thordickinson.dumbcrawler.api.ContentValidator;
-import com.thordickinson.dumbcrawler.api.CrawledPage;
-import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.util.Counters;
 import com.thordickinson.dumbcrawler.util.InvalidDocumentException;
 
 public class CrawlingTask implements Callable<CrawlingResult> {
 
-    private final String originalUrl;
-    private final List<URLTransformer> urlTransformers;
+    private final String url;
     private static Optional<String> HTML = Optional.of("text/html");
     private static final Logger logger = LoggerFactory.getLogger(CrawlingTask.class);
-    private int timeout = 30 * 1000;
-    private int maxRetryCount = 3;
-    private int maxValidationCount = 3;
     private final List<ContentValidator> contentValidators;
+    private final HtmlRenderer htmlRenderer;
 
-    public CrawlingTask(String originalUrl, List<ContentValidator> contentValidators, List<URLTransformer> urlTransformers) {
-        this.originalUrl = originalUrl;
+    public CrawlingTask(String url, List<ContentValidator> contentValidators) {
+        this.url = url;
         this.contentValidators = contentValidators;
-        this.urlTransformers = urlTransformers;
-    }
-
-    private String transformUrl(Map<String, String> renderingHints, Counters counters) {
-        renderingHints = renderingHints == null ? Collections.emptyMap() : renderingHints;
-        String result = originalUrl;
-        for (var t : urlTransformers) result = t.transform(result, renderingHints, counters);
-        return result;
+        this.htmlRenderer = new SimpleHttpRenderer();
     }
 
     @Override
@@ -54,11 +42,11 @@ public class CrawlingTask implements Callable<CrawlingResult> {
             page = crawl(links);
         } catch (IOException ex) {
             logger.debug("Error while fetching page", ex);
-            page = createErrorPage(originalUrl);
+            page = createErrorPage(url);
             exception = ex;
         } catch (InvalidDocumentException ex) {
             logger.debug("Invalid document detected");
-            page = createErrorPage(originalUrl);
+            page = createErrorPage(url);
             exception = ex;
         }
 
@@ -69,6 +57,7 @@ public class CrawlingTask implements Callable<CrawlingResult> {
     private CrawledPage crawl(Collection<String> linkContainer) throws IOException {
         var attempt = 0;
         IOException lastException = null;
+        int maxRetryCount = 3;
         do {
             attempt++;
             try {
@@ -84,24 +73,25 @@ public class CrawlingTask implements Callable<CrawlingResult> {
         return new CrawledPage(originalUrl, Optional.empty(), -1, Optional.empty(), Optional.empty(), Collections.emptyMap());
     }
 
+    private String renderHtml(String url){
+        return "";
+    }
 
     private DownloadedDocument getDocument(Counters counters) throws IOException {
         int attempt = 0;
         boolean invalid = true;
         Document document = null;
-        var renderingHints = Map.<String, String>of();
-        var transformedUrl = originalUrl;
+        int maxValidationCount = 3;
         do {
-            transformedUrl = transformUrl(renderingHints, counters);
             counters.increase("GetRequests");
-            document = Jsoup.connect(transformedUrl).timeout(timeout).get();
+            String html = renderHtml(url);
+            document = Jsoup.parse(html);
             invalid = false;
             for (ContentValidator validator : contentValidators) {
-                var validationResult = validator.validateContent(originalUrl, document);
+                var validationResult = validator.validateContent(url, document);
                 if (!validationResult.pageValid()) {
-                    renderingHints = validationResult.renderingHints();
                     counters.increase("invalidContentDetection");
-                    logger.debug("Invalid content detected on url: {}", originalUrl);
+                    logger.debug("Invalid content detected on url: {}", url);
                     invalid = true;
                 }
             }
@@ -111,7 +101,7 @@ public class CrawlingTask implements Callable<CrawlingResult> {
             counters.increase("invalidContentDiscarded");
             throw new InvalidDocumentException("Document is invalid");
         }
-        return new DownloadedDocument(transformedUrl, document);
+        return new DownloadedDocument(url, document);
     }
 
     private CrawledPage doCrawl(Collection<String> linkContainer) throws IOException {
@@ -121,7 +111,7 @@ public class CrawlingTask implements Callable<CrawlingResult> {
             var document = downloadedDocument.document;
             var html = document.html();
             if (StringUtils.isBlank(html)) {
-                logger.error("Parsed html is blank, {}", originalUrl);
+                logger.error("Parsed html is blank, {}", url);
             }
             var links = document.select("a")
                     .stream()
@@ -130,20 +120,20 @@ public class CrawlingTask implements Callable<CrawlingResult> {
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toSet());
             if (links.size() > 300) {
-                logger.warn("Page {} has more than 300 links", originalUrl);
+                logger.warn("Page {} has more than 300 links", url);
             }
             linkContainer.addAll(links);
-            var transformedUrl = Objects.equals(originalUrl, downloadedDocument.fetchedUrl) ? Optional.<String>empty() : Optional.of(downloadedDocument.fetchedUrl);
-            return new CrawledPage(originalUrl, transformedUrl, 200, HTML, Optional.of(html), counters.toMap());
+            var transformedUrl = Objects.equals(url, downloadedDocument.fetchedUrl) ? Optional.<String>empty() : Optional.of(downloadedDocument.fetchedUrl);
+            return new CrawledPage(url, transformedUrl, 200, HTML, Optional.of(html), counters.toMap());
         } catch (HttpStatusException ex) {
             // TODO: Handle 500 errors
-            logger.debug("Error getting url {}", originalUrl, ex);
+            logger.debug("Error getting url {}", url, ex);
             counters.increase("InternalServerErrorReceived");
-            return new CrawledPage(originalUrl, Optional.empty(), ex.getStatusCode(), Optional.empty(), Optional.empty(), counters.toMap());
+            return new CrawledPage(url, Optional.empty(), ex.getStatusCode(), Optional.empty(), Optional.empty(), counters.toMap());
         } catch (UnsupportedMimeTypeException ex) {
-            logger.debug("Error getting url {}", originalUrl, ex);
+            logger.debug("Error getting url {}", url, ex);
             counters.increase("UnsupportedMimeTimeErrorReceived");
-            return new CrawledPage(originalUrl, Optional.empty(), 200, Optional.of(ex.getMimeType()), Optional.empty(), counters.toMap());
+            return new CrawledPage(url, Optional.empty(), 200, Optional.of(ex.getMimeType()), Optional.empty(), counters.toMap());
         }
     }
 

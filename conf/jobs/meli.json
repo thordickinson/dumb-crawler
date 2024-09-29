@@ -1,0 +1,26 @@
+{
+  "seeds": [
+    "https://motos.mercadolibre.com.co/"
+  ],
+  "threadCount": 15,
+  "urlFilter": "matches(host, '(moto|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)",
+  "priorities": [
+    {"urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')", "priority": 100}
+  ],
+  "storage": {
+    "format": "warc|gzip",
+    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
+  },
+  "taskKiller": {
+    "timeout": "20m",
+    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
+  },
+  "timedTaskKiller": {
+    "timeout": "5h"
+  },
+  "contentValidator" : {
+    "disabled": false,
+    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
+    "validIf": "containsElement(document, 'div.ui-pdp-specs')"
+  }
+}

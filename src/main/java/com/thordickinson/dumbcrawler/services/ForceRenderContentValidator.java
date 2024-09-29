@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.thordickinson.dumbcrawler.api.ConfigurableCrawlingComponent;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,7 @@ import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
  * }
  */
 @Service
-public class ForceRenderContentValidator extends AbstractCrawlingComponent implements ContentValidator  {
+public class ForceRenderContentValidator extends ConfigurableCrawlingComponent implements ContentValidator  {
 
     private Optional<String>  expression = Optional.empty();
 

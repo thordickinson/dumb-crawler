@@ -11,5 +11,4 @@
     <logger name="com.thordickinson.dumbcrawler.DumbCrawler" level="INFO" />
     <logger name="com.thordickinson.dumbcrawler.DumbCrawler.error" level="OFF" />
     <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="INFO" />
-    <logger name="com.thordickinson.dumbcrawler.services.storage.AvroStorage" level="INFO" />
 </configuration>

@@ -2,6 +2,7 @@ package com.thordickinson.dumbcrawler.services;
 
 import java.util.Optional;
 
+import com.thordickinson.dumbcrawler.api.ConfigurableCrawlingComponent;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +12,7 @@ import com.thordickinson.dumbcrawler.api.CrawlingContext;
 import com.thordickinson.dumbcrawler.api.URLHasher;
 
 @Service
-public class IdUrlHasher extends AbstractCrawlingComponent implements URLHasher{
+public class IdUrlHasher extends ConfigurableCrawlingComponent implements URLHasher{
     
     private Optional<String> idExtractor;
     public IdUrlHasher(){

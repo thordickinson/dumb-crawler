@@ -42,27 +42,28 @@ public class CrawlingContext {
     public CrawlingContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;
         this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
-        jobDir = Path.of("./data/jobs").resolve(jobId);
+        jobDir = Path.of("./conf/jobs").resolve(jobId);
         jobDescriptor = loadJob(jobDir);
         executionDir = getOutDir(jobId, this.executionId);
-        executionDir.toFile().mkdirs();
+        if(!executionDir.toFile().mkdirs()){
+            throw new RuntimeException("Unable to create output dirs");
+        }
     }
 
     private Path getOutDir(String jobId, String executionId){
-        String outDir = System.getenv("DCRAWLER_OUT_DIR");
+        String outDir = System.getenv("CRAWLER_OUT_DIR");
         String userHome = System.getProperty("user.home");
         String basePath = outDir == null? userHome : outDir;
-        var executionPath = Path.of(basePath, ".crawler", "jobs", jobId, "executions", executionId, "crawl");
-        return executionPath;
+        return Path.of(basePath, ".crawler", "jobs", jobId, "executions", executionId, "crawl");
     }
 
     public Set<String> getSeeds() {
-        return JsonUtil.get(jobDescriptor, "crawler.seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
+        return JsonUtil.get(jobDescriptor, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
                 .collect(Collectors.toSet())).orElse(Collections.emptySet());
     }
 
     public int getThreadCount() {
-        return JsonUtil.get(jobDescriptor, "crawler.threadCount").map(Any::toInt).orElseGet(() -> 3);
+        return JsonUtil.get(jobDescriptor, "threadCount").map(Any::toInt).orElseGet(() -> 3);
     }
 
     public Optional<Any> getConfig(String path) {
@@ -70,7 +71,7 @@ public class CrawlingContext {
     }
 
     private Any loadJob(Path dataDir) {
-        var configFile = dataDir.resolve("job.json");
+        var configFile = dataDir.resolve(jobId + ".json");
         try {
             return JsonIterator.deserialize(Files.readAllBytes(configFile));
         } catch (IOException ex) {
@@ -78,15 +79,14 @@ public class CrawlingContext {
         }
     }
 
-    public int increaseCounter(String key) {
-        return this.increaseCounter(key, 1);
+    public void increaseCounter(String key) {
+        this.increaseCounter(key, 1);
     }
 
-    public int increaseCounter(String key, int amount) {
+    public void increaseCounter(String key, int amount) {
         int count = (int) this.counters.getOrDefault(key, 0);
         count += amount;
         this.counters.put(key, count);
-        return count;
     }
 
     public void setCounter(String key, Serializable value) {
