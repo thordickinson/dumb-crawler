@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.util;
+package com.thordickinson.dumbcrawler.expression;
 
 import com.creativewidgetworks.expressionparser.Value;
 

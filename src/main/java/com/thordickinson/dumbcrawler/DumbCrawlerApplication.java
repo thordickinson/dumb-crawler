@@ -2,7 +2,6 @@ package com.thordickinson.dumbcrawler;
 
 import java.util.Optional;
 
-import com.thordickinson.dumbcrawler.util.ExpressionTesterCli;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +10,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+
+import com.thordickinson.dumbcrawler.expression.ExpressionTesterCli;
 
 @SpringBootApplication
 public class DumbCrawlerApplication {

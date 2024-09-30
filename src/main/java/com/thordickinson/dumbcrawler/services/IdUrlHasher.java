@@ -10,7 +10,7 @@ import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 
 @Service
-public class IdUrlHasher extends ConfigurableCrawlingComponent implements URLHasher{
+public class IdUrlHasher extends ConfigurableCrawlingComponent {
     
     private Optional<String> idExtractor;
     public IdUrlHasher(){
@@ -21,7 +21,6 @@ public class IdUrlHasher extends ConfigurableCrawlingComponent implements URLHas
     public void loadConfigurations(CrawlingSessionContext context) {
         idExtractor = getConfiguration("idExtractor").map(Any::toString);
     }
-    @Override
     public Optional<String> hashUrl(String url) {
         if(isDisabled()) return Optional.empty();
         if(idExtractor.isEmpty()) return Optional.empty();

@@ -17,6 +17,7 @@ import javax.annotation.PreDestroy;
 import com.thordickinson.dumbcrawler.api.*;
 import com.thordickinson.dumbcrawler.services.CrawlingTaskCallable;
 import com.thordickinson.dumbcrawler.services.URLStore;
+import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
 import com.thordickinson.dumbcrawler.services.renderer.HtmlRenderer;
 import com.thordickinson.dumbcrawler.services.storage.StorageManager;
 import org.slf4j.Logger;
@@ -43,9 +44,9 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private UrlTagger urlTagger;
     @Autowired
-    private HtmlRenderer renderer;
-    @Autowired
     private StorageManager storageManager;
+    @Autowired
+    private ContentRenderer contentRenderer;
 
     private boolean stopped = false;
     private ThreadPoolExecutor executor;
@@ -116,6 +117,7 @@ public class DumbCrawler implements Runnable {
         var links = success.stream().flatMap(c -> c.links().stream()).map(this::createTaskParams).toList();
         //Here we need to separate item urls from other ulrs
         store.addUrls(links);
+        storageManager.storeResults(completed);
     }
 
     private void initialize() {
@@ -244,7 +246,7 @@ public class DumbCrawler implements Runnable {
     }
     private CrawlingTaskCallable createTask(String url){
         var task = createTaskParams(url);
-        return new CrawlingTaskCallable(task, contentValidators);
+        return new CrawlingTaskCallable(task, contentRenderer, contentValidators);
     }
     private void sleep() {
         try {

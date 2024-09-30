@@ -3,8 +3,8 @@ package com.thordickinson.dumbcrawler.api;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
-import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
 /**
  * This component is responsible for tagging URLs based on a set of provided URL expressions.

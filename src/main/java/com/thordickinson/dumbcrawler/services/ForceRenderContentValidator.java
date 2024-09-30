@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.ContentValidator;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
-import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
+import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 
 /**
  *
@@ -20,6 +20,7 @@ import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
  *   "validIf": "NOT matches(path, '^\/(MCO|mco)-[0-9]+.*') OR contains(html, 'technical_specifications')"
  * }
  */
+@Deprecated
 @Service
 public class ForceRenderContentValidator extends ConfigurableCrawlingComponent implements ContentValidator  {
 

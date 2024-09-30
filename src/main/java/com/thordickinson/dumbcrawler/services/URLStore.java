@@ -14,7 +14,6 @@ import com.jsoniter.any.Any;
 import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
-import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -22,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingTask;
+import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 

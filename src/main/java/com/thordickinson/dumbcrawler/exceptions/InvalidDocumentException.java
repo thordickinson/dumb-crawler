@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.util;
+package com.thordickinson.dumbcrawler.exceptions;
 
 public class InvalidDocumentException extends RuntimeException {
 

@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.*;
 
 import com.creativewidgetworks.expressionparser.*;
+import com.thordickinson.dumbcrawler.expression.ExpressionConstants;
+import com.thordickinson.dumbcrawler.expression.ExpressionFunctions;
 
 public class ThreadLocalEvaluator implements ExpressionConstants {
 

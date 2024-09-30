@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.util;
+package com.thordickinson.dumbcrawler.expression;
 
 import java.util.Set;
 import java.util.Stack;

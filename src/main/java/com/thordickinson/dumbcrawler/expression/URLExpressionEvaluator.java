@@ -1,14 +1,13 @@
-package com.thordickinson.dumbcrawler.util;
-
-import com.creativewidgetworks.expressionparser.*;
+package com.thordickinson.dumbcrawler.expression;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.thordickinson.dumbcrawler.util.ThreadLocalEvaluator;
+
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

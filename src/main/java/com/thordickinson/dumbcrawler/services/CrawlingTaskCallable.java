@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import com.thordickinson.dumbcrawler.api.*;
+import com.thordickinson.dumbcrawler.exceptions.InvalidDocumentException;
 import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
 import com.thordickinson.dumbcrawler.services.renderer.HtmlRenderResponse;
 
@@ -18,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.thordickinson.dumbcrawler.util.Counters;
-import com.thordickinson.dumbcrawler.util.InvalidDocumentException;
 
 public class CrawlingTaskCallable implements Callable<CrawlingResult> {
 
@@ -56,7 +56,7 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
         }
 
         long endedAt = System.currentTimeMillis();
-        return new CrawlingResult(page, links, startedAt, endedAt, Optional.ofNullable(exception));
+        return new CrawlingResult(task, page, links, startedAt, endedAt, Optional.ofNullable(exception));
     }
 
     private CrawledPage crawl(Collection<String> linkContainer) throws IOException {
