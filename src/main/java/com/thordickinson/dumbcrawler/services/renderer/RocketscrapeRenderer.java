@@ -1,8 +1,9 @@
 package com.thordickinson.dumbcrawler.services.renderer;
 
-import com.thordickinson.dumbcrawler.api.HtmlRenderer;
+import org.springframework.stereotype.Service;
 
-public class RocketscrapeRenderer extends SimpleHttpRenderer implements HtmlRenderer {
+@Service
+public class RocketscrapeRenderer extends SimpleHttpRenderer {
 
     @Override
     public String renderHtml(String url) {

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.ContentValidator;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.util.URLExpressionEvaluator;
 
 /**
@@ -32,7 +32,7 @@ public class ForceRenderContentValidator extends ConfigurableCrawlingComponent i
 
     
     @Override
-    public void loadConfigurations(CrawlingContext context) {
+    public void loadConfigurations(CrawlingSessionContext context) {
         expression = getConfiguration("validIf").map(Any::toString);
     }
 

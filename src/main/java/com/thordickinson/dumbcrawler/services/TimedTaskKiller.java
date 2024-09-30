@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
 import com.thordickinson.dumbcrawler.util.Misc;
@@ -30,7 +30,7 @@ public class TimedTaskKiller extends AbstractCrawlingComponent implements Crawli
     }
 
     @Override
-    protected void loadConfigurations(CrawlingContext context) {
+    protected void loadConfigurations(CrawlingSessionContext context) {
         timeout = getConfiguration("timeout").map(Any::toString);
         timeoutMillis = timeout.map(Misc::parsePeriod);
     }

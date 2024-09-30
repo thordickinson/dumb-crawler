@@ -84,3 +84,16 @@ After first start, if there is no urls to add in the first iteration, it would n
 * Create a page validation mechanism to refetch pages if they are invalid.
 * Add a proxy configuration
 * Push data to S3 after completion
+
+
+
+* Process: Get Urls, Tag Urls, Fetch, Process (Extract Links), Save, Add Links
+
+This crawler is item specific.
+
+
+
+
+
+
+

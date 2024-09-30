@@ -2,7 +2,7 @@ package com.thordickinson.dumbcrawler.util;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingComponent;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 
 import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
@@ -18,7 +18,7 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     @Getter
-    private CrawlingContext context;
+    private CrawlingSessionContext context;
     @Getter
     private final String componentKey;
 
@@ -28,8 +28,9 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
     }
 
     @Override
-    public void initialize(CrawlingContext context) {
+    public void initialize(CrawlingSessionContext context) {
         this.context = context;
+        loadConfigurations(context);
     }
 
     protected <T> Optional<T> evaluate(Class<T> targetType, String expression, Map<String, Object> variables){
@@ -55,6 +56,6 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
         return get(context.getJobDescriptor(), componentKey + "." + key);
     }
 
-    protected void loadConfigurations(CrawlingContext context) {
+    protected void loadConfigurations(CrawlingSessionContext context) {
     }
 }

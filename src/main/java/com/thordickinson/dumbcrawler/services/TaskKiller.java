@@ -25,7 +25,7 @@ public class TaskKiller extends ConfigurableCrawlingComponent implements Crawlin
     }
 
     @Override
-    public void initialize(CrawlingContext context) {
+    public void initialize(CrawlingSessionContext context) {
         timeout = context.getConfig("timeout").map(Any::toString).map(Misc::parsePeriod).orElse(-1L);
         maxRejectedPageCount = context.getConfig("maxRejectedPageCount").map(Any::toInt).orElse(-1);
         lastValidPageTimestamp = -1L;

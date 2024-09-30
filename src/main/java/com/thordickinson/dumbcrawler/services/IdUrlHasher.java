@@ -7,7 +7,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 
 @Service
 public class IdUrlHasher extends ConfigurableCrawlingComponent implements URLHasher{
@@ -18,7 +18,7 @@ public class IdUrlHasher extends ConfigurableCrawlingComponent implements URLHas
     }
 
     @Override
-    public void loadConfigurations(CrawlingContext context) {
+    public void loadConfigurations(CrawlingSessionContext context) {
         idExtractor = getConfiguration("idExtractor").map(Any::toString);
     }
     @Override

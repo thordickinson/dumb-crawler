@@ -15,8 +15,9 @@ import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.api.*;
-import com.thordickinson.dumbcrawler.services.CrawlingTask;
+import com.thordickinson.dumbcrawler.services.CrawlingTaskCallable;
 import com.thordickinson.dumbcrawler.services.URLStore;
+import com.thordickinson.dumbcrawler.services.renderer.HtmlRenderer;
 import com.thordickinson.dumbcrawler.services.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +37,11 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private ConfigurableApplicationContext appContext;
     @Autowired
-    private List<CrawlingResultHandler> resultHandlers = Collections.emptyList();
-    @Autowired
     private List<ContentValidator> contentValidators = Collections.emptyList();
+    @Autowired
+    private URLHasher urlHasher;
+    @Autowired
+    private UrlTagger urlTagger;
     @Autowired
     private HtmlRenderer renderer;
     @Autowired
@@ -47,7 +50,7 @@ public class DumbCrawler implements Runnable {
     private boolean stopped = false;
     private ThreadPoolExecutor executor;
     private final Set<Future<CrawlingResult>> runningTasks = new HashSet<>();
-    private CrawlingContext crawlingContext;
+    private CrawlingSessionContext crawlingContext;
 
     private Set<String> seeds = Collections.emptySet();
     private long nextStatisticsPrint = -1;
@@ -109,13 +112,10 @@ public class DumbCrawler implements Runnable {
 
         var success = completed.stream().filter(c -> c.error().isEmpty()).toList();
         store.setVisited(success.stream().map(r -> r.page().originalUrl()).collect(Collectors.toSet()));
-        var links = success.stream().flatMap(c -> c.links().stream()).collect(Collectors.toSet());
-        store.addURLs(links);
-        for (var result : success) {
-            for (var resultHandler : resultHandlers) {
-                resultHandler.handleCrawlingResult(result);
-            }
-        }
+
+        var links = success.stream().flatMap(c -> c.links().stream()).map(this::createTaskParams).toList();
+        //Here we need to separate item urls from other ulrs
+        store.addUrls(links);
     }
 
     private void initialize() {
@@ -124,7 +124,6 @@ public class DumbCrawler implements Runnable {
 
     private void terminate() {
         logger.info("Ending crawling session");
-        resultHandlers.forEach(CrawlingComponent::destroy);
         executor.shutdownNow();
     }
 
@@ -142,11 +141,10 @@ public class DumbCrawler implements Runnable {
 
     public void start(String jobId, Optional<String> executionId) {
         stopped = false;
-        crawlingContext = new CrawlingContext(jobId, executionId);
+        crawlingContext = new CrawlingSessionContext(jobId, executionId);
         logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
-        resultHandlers.forEach(h -> h.initialize(crawlingContext));
+
         contentValidators.forEach(t -> t.initialize(crawlingContext));
-        
 
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
                 TimeUnit.SECONDS,
@@ -235,12 +233,19 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(u -> new CrawlingTask(u, contentValidators))
-                .map(executor::submit).collect(Collectors.toSet());
+        var newTasks = urls.stream().map(this::createTask).map(executor::submit).toList();
         runningTasks.addAll(newTasks);
     }
 
-
+    private CrawlingTask createTaskParams(String url){
+        final var hash = urlHasher.hashUrl(url);
+        var tags = urlTagger.tagUrls(url);
+        return new CrawlingTask(hash, url, tags);
+    }
+    private CrawlingTaskCallable createTask(String url){
+        var task = createTaskParams(url);
+        return new CrawlingTaskCallable(task, contentValidators);
+    }
     private void sleep() {
         try {
             logger.trace("Sleeping...");

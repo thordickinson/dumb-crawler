@@ -2,6 +2,6 @@ package com.thordickinson.dumbcrawler.api;
 
 public interface CrawlingComponent {
 
-    void initialize(CrawlingContext context);
+    void initialize(CrawlingSessionContext context);
     default void destroy() {};
 }

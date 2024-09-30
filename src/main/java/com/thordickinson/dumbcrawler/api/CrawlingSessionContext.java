@@ -19,7 +19,7 @@ import com.thordickinson.dumbcrawler.util.JsonUtil;
 
 import lombok.Getter;
 
-public class CrawlingContext {
+public class CrawlingSessionContext {
 
     @Getter
     private final Path jobDir;
@@ -39,7 +39,7 @@ public class CrawlingContext {
 
     private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmm");
 
-    public CrawlingContext(String jobId, Optional<String> executionId) {
+    public CrawlingSessionContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;
         this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
         jobDir = Path.of("./conf/jobs").resolve(jobId);
@@ -68,6 +68,18 @@ public class CrawlingContext {
 
     public Optional<Any> getConfig(String path) {
         return JsonUtil.get(jobDescriptor, path);
+    }
+
+    public int getIntConf(String path, int defValue) {
+        return getConfig(path).orElse(Any.wrap(defValue)).as(Integer.class);
+    }
+
+    public String getStringConf(String path, String defValue) {
+        return getConfig(path).orElse(Any.wrap(defValue)).as(String.class);
+    }
+
+    public boolean getBoolConf(String path, boolean defValue) {
+        return getConfig(path).orElse(Any.wrap(defValue)).as(Boolean.class);
     }
 
     private Any loadJob(Path dataDir) {

@@ -20,8 +20,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -36,7 +36,7 @@ public class URLStore {
 
     private static final Logger logger = LoggerFactory.getLogger(URLStore.class);
     private final Connection cachedConnection;
-    private final CrawlingContext context;
+    private final CrawlingSessionContext context;
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
@@ -44,7 +44,7 @@ public class URLStore {
     private Optional<String> urlFilter = Optional.empty();
     private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
 
-    public URLStore(CrawlingContext context) {
+    public URLStore(CrawlingSessionContext context) {
         this.context = context;
         cachedConnection = createConnection();
         priorityFilters = context.getConfig("crawler.priorities").map(Any::asList)
@@ -197,10 +197,9 @@ public class URLStore {
         return Map.of("QUEUED", queued, "PROCESSED", processed, "FAILED", failed);
     }
 
-    public void addURLs(Set<String> urls) {
-        logger.debug("Receiving {} urls to process", urls.size());
-        var chunks = Lists.partition(new ArrayList<>(urls), 50);
-        chunks.forEach(s -> addUrlsInternal(s, true));
+    public void addUrls(Collection<CrawlingTask> tasks){
+        var deduplicated = new HashSet<>(tasks);
+        deduplicated.forEach(System.out::println);
     }
 
     public void addSeeds(Set<String> seeds) {

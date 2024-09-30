@@ -2,7 +2,6 @@ package com.thordickinson.dumbcrawler.util;
 
 import com.jsoniter.ValueType;
 import com.jsoniter.any.Any;
-import com.jsoniter.spi.JsonException;
 
 import java.util.Arrays;
 import java.util.Collections;

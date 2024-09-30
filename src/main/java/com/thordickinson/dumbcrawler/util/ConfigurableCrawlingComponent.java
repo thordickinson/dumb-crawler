@@ -1,7 +1,7 @@
 package com.thordickinson.dumbcrawler.util;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.CrawlingContext;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import lombok.Getter;
 
 import java.util.Optional;
@@ -21,7 +21,7 @@ public class ConfigurableCrawlingComponent extends AbstractCrawlingComponent {
     }
 
     @Override
-    public void initialize(CrawlingContext context) {
+    public void initialize(CrawlingSessionContext context) {
         super.initialize(context);
         this.expressionEvaluator = new URLExpressionEvaluator();
         var job = context.getJobDescriptor();

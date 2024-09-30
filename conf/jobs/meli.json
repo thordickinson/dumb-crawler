@@ -2,25 +2,32 @@
   "seeds": [
     "https://motos.mercadolibre.com.co/"
   ],
+  "idExtractorPattern": "MCO-[0-9]+",
   "threadCount": 15,
-  "urlFilter": "matches(host, '(moto|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)",
-  "priorities": [
-    {"urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')", "priority": 100}
-  ],
+  "tagger": {
+    "specialTags": ["other"],
+    "item": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
+    "listing": "matches(host, '(moto|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)"
+  },
+  "priorities": {
+    "seed": 1000,
+    "item": 500,
+    "listing": 100,
+    "other": 10
+  },
+  "fetcher": {
+    "proxied": ["item"],
+    "render": ["listing"]
+  },
   "storage": {
-    "format": "warc|gzip",
-    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
+    "includeTags": ["item"]
   },
   "taskKiller": {
-    "timeout": "20m",
-    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')"
-  },
-  "timedTaskKiller": {
-    "timeout": "5h"
+    "timeout": "20m"
   },
   "contentValidator" : {
     "disabled": false,
-    "urlFilter": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
+    "includedTags": ["items"],
     "validIf": "containsElement(document, 'div.ui-pdp-specs')"
   }
 }
