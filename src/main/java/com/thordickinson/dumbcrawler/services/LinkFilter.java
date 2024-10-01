@@ -21,21 +21,24 @@ public class LinkFilter extends AbstractCrawlingComponent {
         super("linkFilter");
     }
 
-    public boolean isURLAllowed(CrawlingTask task) {
+    public boolean isURLAllowed(CrawlingTask task, CrawlingSessionContext sessionContext) {
         var url = task.url();
-        if(!url.startsWith("http")){
-            return  false;
+        if (!url.startsWith("http")) {
+            return false;
         }
-        for(var tag : task.tags()){
-            if(blacklist.contains(tag)){
+        for (var tag : task.tags()) {
+            if (blacklist.contains(tag)) {
+                sessionContext.increaseCounter("ignoredLinks");
                 logger.debug("Url in blacklist: {}", url);
                 return false;
             }
-            if(whitelist.contains(tag)){
+            if (whitelist.contains(tag)) {
+                sessionContext.increaseCounter("allowedLinks");
                 logger.debug("Url is in whitelist: {}", url);
                 return true;
             }
         }
+        sessionContext.increaseCounter(allowByDefault ? "allowedLinks" : "ignoredLinks");
         logger.debug("Allowing by default {}: {}", allowByDefault, url);
         return allowByDefault;
     }

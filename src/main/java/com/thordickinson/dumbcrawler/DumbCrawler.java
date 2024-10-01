@@ -39,6 +39,7 @@ public class DumbCrawler {
     private URLStore store;
     @Autowired
     private ConfigurableApplicationContext appContext;
+    @Deprecated
     private List<ContentValidator> contentValidators = Collections.emptyList();
     @Autowired
     private URLHasher urlHasher;
@@ -74,7 +75,7 @@ public class DumbCrawler {
     private void runLoop() {
         var completedTasks = getCompletedTasks();
         if (!completedTasks.isEmpty()) {
-            processCompletedTasks(completedTasks);
+            processCompletedTasks(completedTasks, crawlingContext);
         }
 
         scheduleNewTasks();
@@ -100,7 +101,7 @@ public class DumbCrawler {
         return results;
     }
 
-    private void processCompletedTasks(Set<CrawlingResult> completed) {
+    private void processCompletedTasks(Set<CrawlingResult> completed, CrawlingSessionContext sessionContext) {
 
         completed.forEach(c -> {
             var counters = c.page().counters();
@@ -121,14 +122,15 @@ public class DumbCrawler {
         store.setVisited(success.stream().map(CrawlingResult::task).collect(Collectors.toSet()));
 
         var links = success.stream().flatMap(c -> c.links().stream())
-                .map(this::createTaskParams).filter(linkFilter::isURLAllowed).toList();
+                .map(this::createTaskParams)
+                .filter(l -> linkFilter.isURLAllowed(l, sessionContext)).toList();
         //Here we need to separate item urls from other ulrs
         if(links.isEmpty()){
             logger.debug("No urls to add");
         } else {
             store.addUrls(links);
         }
-        storageManager.storeResults(completed);
+        storageManager.storeResults(completed, sessionContext);
     }
 
     private void initialize() {
@@ -141,9 +143,9 @@ public class DumbCrawler {
         executor.shutdownNow();
     }
 
-    private void awaitTermination(int minutes) {
+    private void awaitTermination() {
         try {
-            executor.awaitTermination(minutes, TimeUnit.MINUTES);
+            executor.awaitTermination(10, TimeUnit.MINUTES);
         } catch (InterruptedException ex) {
             logger.error("Error while waiting for all the tasks to complete", ex);
         }
@@ -223,7 +225,7 @@ public class DumbCrawler {
             crawlingContext.stopCrawling();
         }
         if (executor != null) {
-            awaitTermination(10);
+            awaitTermination();
         }
         appContext.close();
     }

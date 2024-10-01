@@ -31,13 +31,13 @@ public class StorageManager extends AbstractCrawlingComponent {
         super("storage");
     }
 
-    public void storeResults(Collection<CrawlingResult> results) {
+    public void storeResults(Collection<CrawlingResult> results, CrawlingSessionContext sessionContext) {
         for (var result : results) {
-            storeSingleResult(result);
+            storeSingleResult(result, sessionContext);
         }
     }
 
-    private boolean shouldStore(CrawlingResult result){
+    private boolean shouldStore(CrawlingResult result, CrawlingSessionContext sessionContext){
         for(var tag : result.task().tags()){
             if(allowedTags.contains(tag)){
                 return true;
@@ -46,24 +46,28 @@ public class StorageManager extends AbstractCrawlingComponent {
         return false;
     }
 
-    private void storeSingleResult(CrawlingResult result) {
+    private void storeSingleResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
 
-        if(!shouldStore(result)){
+        if(!shouldStore(result, sessionContext)){
             logger.debug("Ignoring url: {}", result.task().url());
+            sessionContext.increaseCounter("unsavedPages");
             return;
         }
+
         var taskId = result.task().id();
         var fileToUpdate = getFileLocation(taskId);
         if (result.page().content().isEmpty()) {
-            logger.warn("No content to save!");
+            logger.warn("No content to save!: {}", result.task().url());
+            sessionContext.increaseCounter("warn.NoContentPages");
             return;
         }
+        sessionContext.increaseCounter("savedPages");
         var url = result.task().url();
         var html = result.page().content().get();
         if (fileToUpdate.isPresent()) {
-            updateWarcFile(fileToUpdate.get(), url, html);
+            updateWarcFile(fileToUpdate.get(), url, html, sessionContext);
         } else {
-            saveToCurrentFile(url, html);
+            saveToCurrentFile(url, html, sessionContext);
         }
     }
 
@@ -98,9 +102,10 @@ public class StorageManager extends AbstractCrawlingComponent {
      * @param url          The URL of the page being archived.
      * @param content      The content of the web page.
      */
-    private void updateWarcFile(Path warcFilePath, String url, String content) {
+    private void updateWarcFile(Path warcFilePath, String url, String content, CrawlingSessionContext sessionContext) {
 
-
+        logger.info("Updating file with new crawled page {}", url);
+        sessionContext.increaseCounter("updateSavedPages");
         try (OutputStream outStream = Files.newOutputStream(warcFilePath, StandardOpenOption.APPEND)) {
             WarcWriter writer = new WarcWriter(outStream);
 
@@ -129,9 +134,9 @@ public class StorageManager extends AbstractCrawlingComponent {
      * @param url     The URL of the page being archived.
      * @param content The content of the web page.
      */
-    private void saveToCurrentFile(String url, String content) {
-
-
+    private void saveToCurrentFile(String url, String content, CrawlingSessionContext sessionContext) {
+        sessionContext.increaseCounter("newSavedPages");
+        logger.info("Saving page for the first time {}", url);
         try {
             // Check if the current file exists and its size
             if (currentFile == null || Files.notExists(currentFile) || Files.size(currentFile) >= maxFileSize) {

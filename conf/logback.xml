@@ -8,8 +8,10 @@
         <appender-ref ref="FILE" />
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="com.thordickinson.dumbcrawler.DumbCrawler" level="DEBUG" />
+    <logger name="com.thordickinson.dumbcrawler.DumbCrawler" level="INFO" />
     <logger name="com.thordickinson.dumbcrawler.DumbCrawler.error" level="OFF" />
-    <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="DEBUG" />
-    <logger name="com.thordickinson.dumbcrawler.services.LinkFilter" level="DEBUG" />
+    <logger name="com.thordickinson.dumbcrawler.services.URLStore" level="INFO" />
+    <logger name="com.thordickinson.dumbcrawler.services.LinkFilter" level="INFO" />
+    <logger name="com.thordickinson.dumbcrawler.services.renderer.ContentRenderer" level="WARN" />
+    <logger name="com.thordickinson.dumbcrawler.services.storage.StorageManager" level="DEBUG" />
 </configuration>

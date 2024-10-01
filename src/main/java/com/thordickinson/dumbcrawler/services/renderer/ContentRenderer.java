@@ -24,10 +24,10 @@ public class ContentRenderer extends AbstractCrawlingComponent {
 
     public HtmlRenderResponse renderPage(CrawlingTask task){
         if(requiresProxy(task)){
-            logger.info("Proxifying ulr {}", task.url());
+            logger.debug("Proxifying ulr {}", task.url());
             return rocketscrapeRenderer.renderHtml(task.url());
         }
-        logger.info("Using plain connection to get ulr {}", task.url());
+        logger.debug("Using plain connection to get ulr {}", task.url());
         return defaultRenderer.renderHtml(task.url());
     }
 

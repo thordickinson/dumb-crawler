@@ -23,7 +23,7 @@
     "proxify": ["all"]
   },
   "storage": {
-    "includeTags": ["item"]
+    "includedTags": ["item"]
   },
   "taskKiller": {
     "timeout": "20m"
