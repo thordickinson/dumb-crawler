@@ -1,7 +1,10 @@
 package com.thordickinson.dumbcrawler.api;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.stereotype.Service;
 
 import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
@@ -10,6 +13,7 @@ import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
  * This component is responsible for tagging URLs based on a set of provided URL expressions.
  * @see UrlExpressionEvaluator for supported URL expressions.
  */
+@Service
 public class UrlTagger extends AbstractCrawlingComponent {
 
     private Map<String, String> tagExpressionMap = new HashMap<>();
@@ -29,11 +33,11 @@ public class UrlTagger extends AbstractCrawlingComponent {
         config.asMap().forEach((key, value) -> tagExpressionMap.put(key, value.toString()));
     }
 
-    public String[] tagUrls(String url) {
-        return (String[]) tagExpressionMap.entrySet().stream()
+    public Collection<String> tagUrls(String url) {
+        return tagExpressionMap.entrySet().stream()
                .filter(e -> expressionEvaluator.evaluateBoolean(e.getValue(), url))
                .map(Map.Entry::getKey)
-               .toArray();
+               .toList();
     }
 
 }

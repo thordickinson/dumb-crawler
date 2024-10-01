@@ -1,16 +1,14 @@
 package com.thordickinson.dumbcrawler.services;
 
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PreDestroy;
+import com.thordickinson.dumbcrawler.util.SQLiteConnection;
+import jakarta.annotation.PreDestroy;
 
 import com.jsoniter.any.Any;
+
 import static com.thordickinson.dumbcrawler.util.JsonUtil.*;
 
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
@@ -23,8 +21,6 @@ import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingTask;
 import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 
-import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
-
 public class URLStore {
 
     public static class Status {
@@ -35,34 +31,34 @@ public class URLStore {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(URLStore.class);
-    private final Connection cachedConnection;
+    private final SQLiteConnection connection;
     private final CrawlingSessionContext context;
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
     private final List<PriorityFilter> priorityFilters;
     private Optional<String> urlFilter = Optional.empty();
-    private final URLExpressionEvaluator expressionEvaluator =  new URLExpressionEvaluator();
+    private final URLExpressionEvaluator expressionEvaluator = new URLExpressionEvaluator();
 
     public URLStore(CrawlingSessionContext context) {
         this.context = context;
-        cachedConnection = createConnection();
+        connection = new SQLiteConnection(context.getExecutionDir());
         priorityFilters = context.getConfig("crawler.priorities").map(Any::asList)
                 .map(l -> l.stream().map(this::makeFilter).collect(Collectors.toList()))
                 .orElseGet(Collections::emptyList);
         urlFilter = context.getConfig("crawler.urlFilter").map(Any::toString);
     }
 
-    private PriorityFilter makeFilter(Any value){
+    private PriorityFilter makeFilter(Any value) {
         var filter = get(value, "urlFilter").map(Any::toString).orElse(null);
         var priority = get(value, "priority").map(Any::toInt).orElse(0);
         return new PriorityFilter(filter, priority);
     }
 
 
-    private void loadCounters(Connection connection) {
+    private void loadCounters() {
         var sql = "select status, count(*) as count from links group by status";
-        var counters = query(connection, sql);
+        var counters = connection.query(sql);
         for (var counter : counters) {
             var status = (int) counter.get(0);
             switch (status) {
@@ -73,61 +69,45 @@ public class URLStore {
         }
     }
 
-    private void updateOrphans(Connection connection) {
-        var orphans = executeUpdate(connection, "UPDATE links SET status = 0 WHERE status = 1");
+    private void updateOrphans() {
+        var orphans = connection.update("UPDATE links SET status = 0 WHERE status = 1");
         if (orphans > 0)
             logger.warn("{} orphan urls were updated", orphans);
     }
 
-    private void markForRefetch(Connection connection) {
+    private void markForRefetch() {
         boolean refetch = false; // TODO: Make this configurable with a argument
         if (refetch) {
             logger.warn("Marking all links for refetch");
-            executeUpdate(connection, "UPDATE links SET status = 0"); // This will force to revisit all the pages
+            connection.update("UPDATE links SET status = 0"); // This will force to revisit all the pages
             logger.warn("fetch update completed");
         }
     }
 
-    private void initialize(Connection connection) {
+    private void initialize() {
         String check = "SELECT name FROM sqlite_master WHERE type='table' AND name='links'";
-        var checkResult = singleResult(String.class, connection, check);
+        var checkResult = connection.singleResult(String.class, check);
         if (checkResult.isPresent()) {
             logger.info("Schema is initialized");
-            updateOrphans(connection);
-            loadCounters(connection);
-            markForRefetch(connection);
+            updateOrphans();
+            loadCounters();
+            markForRefetch();
             return;
         }
 
         logger.info("Initializing schema");
         String table = "CREATE TABLE links (hash TEXT PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT, " +
                 "status INTEGER DEFAULT 0, priority INTEGER DEFAULT 0) WITHOUT ROWID";
-        executeUpdate(connection, table);
-        executeUpdate(connection, "CREATE INDEX url_index ON links(url)");
-        executeUpdate(connection, "CREATE INDEX status_index ON links(status)");
-        executeUpdate(connection, "CREATE INDEX priority_index ON links(priority)");
+        connection.update(table);
+        connection.update("CREATE INDEX url_index ON links(url)");
+        connection.update("CREATE INDEX status_index ON links(status)");
+        connection.update("CREATE INDEX priority_index ON links(priority)");
         logger.info("Schema creation complete");
     }
 
-    private Connection createConnection() {
-        Path url = context.getExecutionDir().resolve("db.sqlite");
-        url.getParent().toFile().mkdirs();
-        try {
-            var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(url.toAbsolutePath()));
-            logger.info("Connected to database at: %s".formatted(url));
-            initialize(conn);
-            return conn;
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error connecting to: %s".formatted(url), ex);
-        }
-    }
-
-    private Connection getConnection() {
-        return cachedConnection;
-    }
 
     private boolean shouldAddLink(String uri) {
-        if(!uri.startsWith("http")){
+        if (!uri.startsWith("http")) {
             logger.trace("Url ignored, protocol is not http or https {}", uri);
             return false;
         }
@@ -144,7 +124,7 @@ public class URLStore {
         return priority;
     }
 
-    private String hashUrl(String url){
+    private String hashUrl(String url) {
         return DigestUtils.md5Hex(url);
     }
 
@@ -152,7 +132,7 @@ public class URLStore {
         if (urls.isEmpty())
             return;
 
-        var filtered = filter? urls.stream().filter(this::shouldAddLink)
+        var filtered = filter ? urls.stream().filter(this::shouldAddLink)
                 .toList() : new ArrayList<>(urls);
 
         context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
@@ -160,33 +140,32 @@ public class URLStore {
         if (filtered.isEmpty())
             return;
 
-        var hashedUrls =  new HashMap<String,String>();
-        for(var url : filtered){
+        var hashedUrls = new HashMap<String, String>();
+        for (var url : filtered) {
             hashedUrls.put(hashUrl(url), url);
         }
-        
-        var connection = getConnection();
+
         var hashList = new ArrayList<String>(hashedUrls.keySet());
         var placeholders = JDBCUtil.generateParams(hashList.size());
         var exists = "SELECT hash FROM links WHERE hash in %s".formatted(placeholders);
-        var existent = query(connection, exists,  hashList)
-        .stream().map(r -> r.get(0)).map(String::valueOf)
+        var existent = connection.query(exists, hashList)
+                .stream().map(r -> r.get(0)).map(String::valueOf)
                 .collect(Collectors.toSet());
 
         var toInsert = new HashMap<>(hashedUrls);
-        for(var e : existent){
+        for (var e : existent) {
             toInsert.remove(e);
         }
         if (toInsert.isEmpty())
             return;
-        
+
         var prioritized = toInsert.entrySet().stream().map(e -> new NewUrl(e.getValue(), e.getKey(), getPriority(e.getValue()))).toList();
 
         var sqlFormat = JDBCUtil.generateParams(3, prioritized.size());
         List<Object> params = prioritized.stream().flatMap(e -> Stream.of(e.hash(), e.url(), e.priority()))
-        .collect(Collectors.toList());
+                .collect(Collectors.toList());
         var insert = "INSERT INTO links (hash, url, priority) VALUES %s".formatted(sqlFormat);
-        executeUpdate(connection, insert, params);
+        connection.update(insert, params);
 
         context.increaseCounter("discoveredUrls", prioritized.size());
         queued += prioritized.size();
@@ -197,13 +176,9 @@ public class URLStore {
         return Map.of("QUEUED", queued, "PROCESSED", processed, "FAILED", failed);
     }
 
-    public void addUrls(Collection<CrawlingTask> tasks){
+    public void addUrls(Collection<CrawlingTask> tasks) {
         var deduplicated = new HashSet<>(tasks);
         deduplicated.forEach(System.out::println);
-    }
-
-    public void addSeeds(Set<String> seeds) {
-        this.addUrlsInternal(seeds, false);
     }
 
     private static String formatUrls(Set<String> urls) {
@@ -227,28 +202,28 @@ public class URLStore {
     public void updateStatus(Set<String> urls, int status) {
         String strUrls = formatUrls(urls);
         String sql = "UPDATE links SET status = %d WHERE url IN (%s)".formatted(status, strUrls);
-        var updated = executeUpdate(getConnection(), sql);
+        var updated = connection.update(sql);
         context.increaseCounter("visitedUrls", urls.size());
         logger.debug("Marking {} urls as visited", updated);
     }
 
     public Set<String> getUnvisited(int count) {
         var sql = "SELECT url FROM links WHERE status = 0 ORDER BY priority DESC LIMIT ?";
-        var result = query(getConnection(), sql, List.of(count));
+        var result = connection.query(sql, List.of(count));
         var unvisited = result.stream().map(r -> r.get(0)).map(String::valueOf).collect(Collectors.toSet());
         var urlList = unvisited.stream().map("'%s'"::formatted).collect(Collectors.joining(", "));
         var update = "UPDATE links SET status = 1 WHERE url IN (%s)".formatted(urlList);
-        var updated = executeUpdate(getConnection(), update);
+        var updated = connection.update(update);
         logger.debug("Returned {} urls to process", updated);
         return unvisited;
     }
 
     @PreDestroy
     void destroy() {
-        if (cachedConnection != null) {
+        if (connection != null) {
             try {
                 logger.debug("Closing connection");
-                cachedConnection.close();
+                connection.close();
             } catch (Exception ex) {
                 logger.warn("Error closing connection", ex);
             }
@@ -256,9 +231,9 @@ public class URLStore {
     }
 }
 
-record PriorityFilter(String filter, Integer value){
+record PriorityFilter(String filter, Integer value) {
 }
 
-record NewUrl(String url, String hash, int priority){ 
+record NewUrl(String url, String hash, int priority) {
 }
 

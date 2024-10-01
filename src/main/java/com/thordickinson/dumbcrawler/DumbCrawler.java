@@ -1,8 +1,10 @@
 package com.thordickinson.dumbcrawler;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -12,13 +14,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.api.*;
 import com.thordickinson.dumbcrawler.services.CrawlingTaskCallable;
 import com.thordickinson.dumbcrawler.services.URLStore;
 import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
-import com.thordickinson.dumbcrawler.services.renderer.HtmlRenderer;
 import com.thordickinson.dumbcrawler.services.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +122,8 @@ public class DumbCrawler implements Runnable {
     }
 
     private void initialize() {
-        store.addSeeds(seeds);
+        var seedTasks = seeds.stream().map(seed ->  createTaskParams(seed, "seed")).toList();
+        store.addUrls(seedTasks);
     }
 
     private void terminate() {
@@ -153,7 +155,7 @@ public class DumbCrawler implements Runnable {
                 new LinkedBlockingQueue<Runnable>());
         seeds = crawlingContext.getSeeds();
 
-        // TODO: once this is started we should load counters in the context
+        // TODO: once this is started we should load counters in the context.
         store = new URLStore(crawlingContext);
         Thread loopThread = new Thread(this, "main-thread");
         this.nextStatisticsPrint = System.currentTimeMillis() + 5000;
@@ -199,7 +201,9 @@ public class DumbCrawler implements Runnable {
     @PreDestroy
     public void stop() {
         logger.info("Stop requested, waiting for tasks to complete");
-        crawlingContext.stopCrawling();
+        if(crawlingContext != null){
+            crawlingContext.stopCrawling();
+        }
         if (executor != null) {
             awaitTermination(10);
         }
@@ -239,13 +243,15 @@ public class DumbCrawler implements Runnable {
         runningTasks.addAll(newTasks);
     }
 
-    private CrawlingTask createTaskParams(String url){
+    private CrawlingTask createTaskParams(String url, String ...extraTags){
         final var hash = urlHasher.hashUrl(url);
         var tags = urlTagger.tagUrls(url);
-        return new CrawlingTask(hash, url, tags);
+        var allTags = new LinkedList<String>(Arrays.asList(extraTags));
+        allTags.addAll(tags);
+        return new CrawlingTask(hash, url, allTags.toArray(new String[0]));
     }
-    private CrawlingTaskCallable createTask(String url){
-        var task = createTaskParams(url);
+    private CrawlingTaskCallable createTask(String url, String ...extraTags){
+        var task = createTaskParams(url, extraTags);
         return new CrawlingTaskCallable(task, contentRenderer, contentValidators);
     }
     private void sleep() {

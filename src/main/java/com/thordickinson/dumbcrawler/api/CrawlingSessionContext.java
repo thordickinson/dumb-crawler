@@ -42,7 +42,7 @@ public class CrawlingSessionContext {
     public CrawlingSessionContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;
         this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
-        jobDir = Path.of("./conf/jobs").resolve(jobId);
+        jobDir = Path.of("./conf/jobs");
         jobDescriptor = loadJob(jobDir);
         executionDir = getOutDir(jobId, this.executionId);
         if(!executionDir.toFile().mkdirs()){

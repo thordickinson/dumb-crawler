@@ -44,7 +44,6 @@ class RowResultSetHandler implements ResultSetHandler<List<Object>> {
 
 public class JDBCUtil {
 
-
     public static <T> Optional<T> singleResult(Class<T> type, Connection connection,
             String sql) {
         return singleResult(type, connection, sql, Collections.emptyList());
