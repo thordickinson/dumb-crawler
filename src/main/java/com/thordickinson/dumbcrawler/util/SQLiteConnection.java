@@ -25,11 +25,18 @@ public class SQLiteConnection implements AutoCloseable {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(SQLiteConnection.class);
-    private Path directory;
+    private final Path directory;
     private Connection connection;
+    private final String fileName;
     private final List<TableDef> tables = new LinkedList<>();
-    public SQLiteConnection(Path directory){
+
+    public SQLiteConnection(Path directory, String fileName){
         this.directory = directory;
+        this.fileName = fileName;
+    }
+
+    public SQLiteConnection(Path directory){
+        this(directory, "db");
     }
 
     public void addTable(String name, Map<String, String> columns, boolean withRowId, List<String> indices){
@@ -65,7 +72,7 @@ public class SQLiteConnection implements AutoCloseable {
     }
 
     private Connection createConnection() {
-        Path url = directory.resolve("db.sqlite");
+        Path url = directory.resolve("%s.sqlite".formatted(fileName));
         url.getParent().toFile().mkdirs();
         try {
             var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(url.toAbsolutePath()));

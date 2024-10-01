@@ -2,7 +2,6 @@ package com.thordickinson.dumbcrawler.services.renderer;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.util.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
@@ -25,8 +24,10 @@ public class ContentRenderer extends AbstractCrawlingComponent {
 
     public HtmlRenderResponse renderPage(CrawlingTask task){
         if(requiresProxy(task)){
+            logger.info("Proxifying ulr {}", task.url());
             return rocketscrapeRenderer.renderHtml(task.url());
         }
+        logger.info("Using plain connection to get ulr {}", task.url());
         return defaultRenderer.renderHtml(task.url());
     }
 

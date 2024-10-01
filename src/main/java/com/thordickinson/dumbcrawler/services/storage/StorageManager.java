@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class StorageManager extends AbstractCrawlingComponent {
 
+
     public StorageManager() {
         super("storage");
     }

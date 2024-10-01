@@ -158,7 +158,7 @@ public class DumbCrawler {
         stopped = false;
         crawlingContext = new CrawlingSessionContext(jobId, executionId);
         initializeComponents(crawlingContext);
-        logger.info("Starting crawling session: {}", crawlingContext.getExecutionId());
+        logger.info("Starting crawling session: {}", crawlingContext.getSessionId());
 
         executor = new ThreadPoolExecutor(crawlingContext.getThreadCount(), crawlingContext.getThreadCount(), 60L,
                 TimeUnit.SECONDS,
@@ -182,7 +182,7 @@ public class DumbCrawler {
         nextStatisticsPrint = now + PRINT_TIMERS_TIMEOUT;
         var ctx = this.crawlingContext;
 
-        StringBuilder message = new StringBuilder("\nExecution Id: ").append(ctx.getExecutionId()).append("\n")
+        StringBuilder message = new StringBuilder("\nExecution Id: ").append(ctx.getSessionId()).append("\n")
                 .append("Time since start: ")
                 .append(formatDuration(Duration.ofMillis(now - ctx.getStartedAt()))).append("\n");
         var max = rt.maxMemory();

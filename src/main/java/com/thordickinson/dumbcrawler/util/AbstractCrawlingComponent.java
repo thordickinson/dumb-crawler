@@ -53,7 +53,7 @@ public class AbstractCrawlingComponent implements CrawlingComponent {
     }
 
     protected Optional<Any> getConfiguration(String key) {
-        return get(context.getJobDescriptor(), componentKey + "." + key);
+        return get(context.getJobConfiguration(), componentKey + "." + key);
     }
 
     protected void loadConfigurations(CrawlingSessionContext context) {

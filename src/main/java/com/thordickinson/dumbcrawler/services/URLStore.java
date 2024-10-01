@@ -38,7 +38,7 @@ public class URLStore {
 
     public URLStore(CrawlingSessionContext context) {
         this.context = context;
-        connection = new SQLiteConnection(context.getExecutionDir());
+        connection = new SQLiteConnection(context.getSessionDir());
         configure();
         initialize();
     }

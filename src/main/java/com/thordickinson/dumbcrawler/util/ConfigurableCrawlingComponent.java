@@ -26,7 +26,7 @@ public class ConfigurableCrawlingComponent extends AbstractCrawlingComponent {
     public void initialize(CrawlingSessionContext context) {
         super.initialize(context);
         this.expressionEvaluator = new URLExpressionEvaluator();
-        var job = context.getJobDescriptor();
+        var job = context.getJobConfiguration();
         this.enabled = get(job, getComponentKey()).isPresent() &&
                 !getConfiguration("disabled").map(Any::toBoolean).orElse(false);
         urlFilter = getConfiguration("urlFilter").map(Any::toString);

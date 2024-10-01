@@ -22,17 +22,21 @@ import lombok.Getter;
 public class CrawlingSessionContext {
 
     @Getter
-    private final Path jobDir;
+    private final Path jobsConfDir;
     @Getter
     private final String jobId;
     @Getter
-    private final String executionId;
+    private final String sessionId;
     @Getter
-    private final Any jobDescriptor;
+    private final Any jobConfiguration;
     @Getter
-    private final Path executionDir;
+    private final Path sessionDir;
+    @Getter
+    private final Path jobOutputDir;
     @Getter
     private boolean stopRequested = false;
+    @Getter
+    private final Path dataPath;
     @Getter
     private final long startedAt = System.currentTimeMillis();
     private final Map<String, Serializable> counters = new HashMap<>();
@@ -41,33 +45,37 @@ public class CrawlingSessionContext {
 
     public CrawlingSessionContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;
-        this.executionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
-        jobDir = Path.of("./conf/jobs");
-        jobDescriptor = loadJob(jobDir);
-        executionDir = getOutDir(jobId, this.executionId);
-        if(!executionDir.toFile().mkdirs()){
+
+        jobsConfDir = Path.of("./conf/jobs");
+        jobConfiguration = loadJob(jobsConfDir);
+        jobOutputDir = getOutputDir();
+
+        this.sessionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
+        sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId).resolve("crawl");
+        dataPath = jobOutputDir.resolve("data");
+        if(!sessionDir.toFile().mkdirs()){
             throw new RuntimeException("Unable to create output dirs");
         }
     }
 
-    private Path getOutDir(String jobId, String executionId){
+    private Path getOutputDir(){
         String outDir = System.getenv("CRAWLER_OUT_DIR");
         String userHome = System.getProperty("user.home");
         String basePath = outDir == null? userHome : outDir;
-        return Path.of(basePath, ".crawler", "jobs", jobId, "executions", executionId, "crawl");
+        return Path.of(basePath, ".crawler", "jobs", jobId);
     }
 
     public Set<String> getSeeds() {
-        return JsonUtil.get(jobDescriptor, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
+        return JsonUtil.get(jobConfiguration, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
                 .collect(Collectors.toSet())).orElse(Collections.emptySet());
     }
 
     public int getThreadCount() {
-        return JsonUtil.get(jobDescriptor, "threadCount").map(Any::toInt).orElseGet(() -> 3);
+        return JsonUtil.get(jobConfiguration, "threadCount").map(Any::toInt).orElseGet(() -> 3);
     }
 
     public Optional<Any> getConfig(String path) {
-        return JsonUtil.get(jobDescriptor, path);
+        return JsonUtil.get(jobConfiguration, path);
     }
 
     public int getIntConf(String path, int defValue) {
