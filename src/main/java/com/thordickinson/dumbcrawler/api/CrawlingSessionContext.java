@@ -31,13 +31,13 @@ public class CrawlingSessionContext {
     private final Any jobDescriptor;
     @Getter
     private final Path executionDir;
-    private final Map<String, Serializable> counters = new HashMap<>();
     @Getter
     private boolean stopRequested = false;
     @Getter
     private final long startedAt = System.currentTimeMillis();
+    private final Map<String, Serializable> counters = new HashMap<>();
 
-    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmm");
+    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
     public CrawlingSessionContext(String jobId, Optional<String> executionId) {
         this.jobId = jobId;

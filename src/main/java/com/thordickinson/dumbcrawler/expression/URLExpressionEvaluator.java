@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import okhttp3.HttpUrl;
+
 public class URLExpressionEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(URLExpressionEvaluator.class);
@@ -31,33 +33,33 @@ public class URLExpressionEvaluator {
     public static Optional<Map<String, Object>> getVariablesfromUrl(String url) {
         return getVariablesfromUrl(url, Optional.empty());
     }
+
     public static Optional<Map<String, Object>> getVariablesfromUrl(String url, Optional<String> contentType) {
-        try{
-            var parsed = URI.create(url);
-            var variables = new HashMap<String, Object>();
-            variables.put("url", url);
-            variables.put("protocol", parsed.getScheme());
-            variables.put("host", parsed.getHost());
-            variables.put("path", parsed.getPath());
-            variables.put("port", new BigDecimal(parsed.getPort()));
-            variables.put("query", parsed.getQuery());
-            variables.put("fragment", parsed.getFragment());
-            variables.put("contentType", contentType.orElse(null));
-            return Optional.of(variables);
-        }catch(IllegalArgumentException ex){
-            logger.warn("Error parsing url: " + url, ex);
+        var parsed = HttpUrl.parse(url);
+        if (parsed == null) {
+            logger.warn("Error parsing url: {}", url);
             return Optional.empty();
         }
+        var variables = new HashMap<String, Object>();
+        variables.put("url", url);
+        variables.put("protocol", parsed.scheme());
+        variables.put("host", parsed.host());
+        variables.put("path", parsed.encodedPath());
+        variables.put("port", new BigDecimal(parsed.port()));
+        variables.put("query", parsed.query());
+        variables.put("fragment", parsed.fragment());
+        variables.put("contentType", contentType.orElse(null));
+        return Optional.of(variables);
     }
 
 
     public <T> Optional<T> evaluateAs(Class<T> expectedType, String expression, String url, Optional<String> contentType) {
-        if(StringUtils.isBlank(expression) || StringUtils.isBlank(url)) return Optional.empty();
-        try{
-            return getVariablesfromUrl(url, contentType).flatMap(variables -> 
-                ThreadLocalEvaluator.getThreadEvaluator().evaluateAs(expectedType, expression, variables)
+        if (StringUtils.isBlank(expression) || StringUtils.isBlank(url)) return Optional.empty();
+        try {
+            return getVariablesfromUrl(url, contentType).flatMap(variables ->
+                    ThreadLocalEvaluator.getThreadEvaluator().evaluateAs(expectedType, expression, variables)
             );
-        }catch(IllegalArgumentException ex){
+        } catch (IllegalArgumentException ex) {
             logger.warn("Error parsing url: " + url, ex);
             return Optional.empty();
         }

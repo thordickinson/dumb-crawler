@@ -2,6 +2,7 @@ package com.thordickinson.dumbcrawler.api;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
@@ -15,6 +16,8 @@ import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
  */
 @Service
 public class UrlTagger extends AbstractCrawlingComponent {
+
+    public static String OTHER_TAG = "other";
 
     private Map<String, String> tagExpressionMap = new HashMap<>();
     private final URLExpressionEvaluator expressionEvaluator = new URLExpressionEvaluator() ;
@@ -31,13 +34,18 @@ public class UrlTagger extends AbstractCrawlingComponent {
         }
         var config = taggerConfig.get();
         config.asMap().forEach((key, value) -> tagExpressionMap.put(key, value.toString()));
+        if(tagExpressionMap.containsKey(OTHER_TAG)){
+            logger.warn("{} is a reserved tag, tagging will be ignored for this tag", OTHER_TAG);
+            tagExpressionMap.remove(OTHER_TAG);
+        }
     }
 
     public Collection<String> tagUrls(String url) {
-        return tagExpressionMap.entrySet().stream()
+        var tags = tagExpressionMap.entrySet().stream()
                .filter(e -> expressionEvaluator.evaluateBoolean(e.getValue(), url))
                .map(Map.Entry::getKey)
                .toList();
+        return !tags.isEmpty() ? tags : List.of(OTHER_TAG);
     }
 
 }

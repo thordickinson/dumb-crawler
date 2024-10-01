@@ -1,12 +1,11 @@
 package com.thordickinson.dumbcrawler.services.renderer;
 
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Service
 public class RocketscrapeRenderer extends SimpleHttpRenderer {
 
-    
-    private String rocketScrapeEndpoint = "https://api.rocketscrape.com/";
+    private static final Logger logger = LoggerFactory.getLogger(RocketscrapeRenderer.class);
     private String apiKey = null;
 
     private String getApiKey(){
@@ -20,6 +19,8 @@ public class RocketscrapeRenderer extends SimpleHttpRenderer {
     }
     @Override
     public HtmlRenderResponse renderHtml(String url) {
+        logger.debug("Rendering using rocketscrapper: {}", url);
+        String rocketScrapeEndpoint = "https://api.rocketscrape.com/";
         var transformedUrl = rocketScrapeEndpoint + "?apiKey=" + getApiKey() + "&url=" + url;
         return super.renderHtml(transformedUrl);
     }

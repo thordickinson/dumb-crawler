@@ -2,12 +2,15 @@
   "seeds": [
     "https://motos.mercadolibre.com.co/"
   ],
-  "idExtractorPattern": "MCO-[0-9]+",
+  "idExtractorPattern": "\/(?<id>MCO-[0-9]{6,})",
   "threadCount": 15,
   "tagger": {
-    "specialTags": ["other"],
+    "internal": "matches(host, '(.*).mercadolibre.com.co')",
     "item": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
     "listing": "matches(host, '(moto|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)"
+  },
+  "linkFilter": {
+    "internal":  true
   },
   "priorities": {
     "seed": 1000,
@@ -15,9 +18,8 @@
     "listing": 100,
     "other": 10
   },
-  "fetcher": {
-    "proxied": ["item"],
-    "render": ["listing"]
+  "renderer": {
+    "proxify": ["all"]
   },
   "storage": {
     "includeTags": ["item"]
