@@ -5,12 +5,13 @@
   "idExtractorPattern": "\/(?<id>MCO-[0-9]{6,})",
   "threadCount": 15,
   "tagger": {
-    "internal": "matches(host, '(.*).mercadolibre.com.co')",
+    "internal": "matches(host, 'motos?.mercadolibre.com.co')",
     "item": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
-    "listing": "matches(host, '(moto|vehiculo)s?\\.mercadolibre\\.com\\.co') and not isResource(path)"
+    "listing": "matches(host, 'motos\\.mercadolibre\\.com\\.co') and not isResource(path)"
   },
   "linkFilter": {
-    "internal":  true
+    "whitelist": ["internal"],
+    "blacklist": ["other"]
   },
   "priorities": {
     "seed": 1000,

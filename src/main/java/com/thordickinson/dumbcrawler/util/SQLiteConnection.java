@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -19,8 +20,10 @@ public class SQLiteConnection implements AutoCloseable {
 
     private record TableDef(String name, Map<String, String> columns, boolean withRowId, List<String> indices) {
         public String getSQL() {
-            var columns = columns().entrySet().stream().map( (entry) -> "{0} {1}".formatted(entry.getKey(), entry.getValue()) );
-            return "CREATE TABLE IF NOT EXISTS {0} ({1})".formatted(name, columns);
+            var columns = columns().entrySet().stream()
+                    .map( (entry) -> "%s %s".formatted(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.joining(", "));
+            return "CREATE TABLE IF NOT EXISTS %s (%s)".formatted(name, columns);
         }
     }
 
@@ -63,7 +66,7 @@ public class SQLiteConnection implements AutoCloseable {
     private void initializeTables(){
         logger.info("Initializing tables");
         for(var table : tables){
-            logger.info("Creating table: {0}".formatted(table.name()));
+            logger.info("Creating table: {}", table.name());
             executeUpdate(connection, table.getSQL());
             for(var index : table.indices){
                 executeUpdate(connection, index);
@@ -76,7 +79,7 @@ public class SQLiteConnection implements AutoCloseable {
         url.getParent().toFile().mkdirs();
         try {
             var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(url.toAbsolutePath()));
-            logger.info("Connected to database at: %s".formatted(url));
+            logger.info("Connected to database at: {}", url);
             return conn;
         } catch (SQLException ex) {
             throw new RuntimeException("Error connecting to: %s".formatted(url), ex);
@@ -92,6 +95,10 @@ public class SQLiteConnection implements AutoCloseable {
 
     public <T> Optional<T> singleResult(Class<T> expectedType, String query) {
         return JDBCUtil.singleResult(expectedType, getConnection(), query);
+    }
+
+    public <T> Optional<T> singleResult(Class<T> expectedType, String query, Object... params) {
+        return JDBCUtil.singleResult(expectedType, getConnection(), query, Arrays.asList(params));
     }
 
     public List<List<Object>> query(String sql, List<?> params){

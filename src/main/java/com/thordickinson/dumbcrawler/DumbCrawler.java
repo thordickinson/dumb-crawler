@@ -14,6 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.thordickinson.dumbcrawler.services.LinkFilter;
 import jakarta.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.api.*;
@@ -38,7 +39,6 @@ public class DumbCrawler {
     private URLStore store;
     @Autowired
     private ConfigurableApplicationContext appContext;
-    @Autowired
     private List<ContentValidator> contentValidators = Collections.emptyList();
     @Autowired
     private URLHasher urlHasher;
@@ -48,6 +48,8 @@ public class DumbCrawler {
     private StorageManager storageManager;
     @Autowired
     private ContentRenderer contentRenderer;
+    @Autowired
+    private LinkFilter linkFilter;
 
     private boolean stopped = false;
     private ThreadPoolExecutor executor;
@@ -116,11 +118,16 @@ public class DumbCrawler {
         });
 
         var success = completed.stream().filter(c -> c.error().isEmpty()).toList();
-        store.setVisited(success.stream().map(r -> r.task()).collect(Collectors.toSet()));
+        store.setVisited(success.stream().map(CrawlingResult::task).collect(Collectors.toSet()));
 
-        var links = success.stream().flatMap(c -> c.links().stream()).filter(l -> l.startsWith("http")).map(this::createTaskParams).toList();
+        var links = success.stream().flatMap(c -> c.links().stream())
+                .map(this::createTaskParams).filter(linkFilter::isURLAllowed).toList();
         //Here we need to separate item urls from other ulrs
-        store.addUrls(links);
+        if(links.isEmpty()){
+            logger.debug("No urls to add");
+        } else {
+            store.addUrls(links);
+        }
         storageManager.storeResults(completed);
     }
 
@@ -148,6 +155,7 @@ public class DumbCrawler {
 
     private void initializeComponents(CrawlingSessionContext context){
         storageManager.initialize(context);
+        linkFilter.initialize(context);
         contentRenderer.initialize(context);
         urlTagger.initialize(context);
         urlHasher.initialize(context);
@@ -258,6 +266,7 @@ public class DumbCrawler {
         var tags = urlTagger.tagUrls(url);
         var allTags = new LinkedList<String>(Arrays.asList(extraTags));
         allTags.addAll(tags);
+        logger.debug("Tag assignment: {} -> {}", allTags, url);
         return new CrawlingTask(hash, url, allTags.toArray(new String[0]));
     }
     private CrawlingTaskCallable createTask(String url, String ...extraTags){
