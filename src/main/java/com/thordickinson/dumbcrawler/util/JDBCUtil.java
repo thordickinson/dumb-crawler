@@ -63,7 +63,7 @@ public class JDBCUtil {
     public static List<List<Object>> query(Connection connection, String sql, List<?> params) {
         QueryRunner runner = new QueryRunner();
         try {
-            return runner.query(connection, sql, new ListResultHandler<List<Object>>(new RowResultSetHandler()),
+            return runner.query(connection, sql, new ListResultHandler<>(new RowResultSetHandler()),
                     params.toArray());
         } catch (SQLException ex) {
             throw new RuntimeException("Error running query: %s".formatted(sql), ex);

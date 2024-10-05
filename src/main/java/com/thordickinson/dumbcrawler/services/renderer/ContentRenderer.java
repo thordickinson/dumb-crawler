@@ -22,13 +22,17 @@ public class ContentRenderer extends AbstractCrawlingComponent {
         super("contentRenderer");
     }
 
-    public HtmlRenderResponse renderPage(CrawlingTask task){
+    public String renderPage(CrawlingTask task){
+       return tryRender(task);
+    }
+
+    private String tryRender(CrawlingTask task){
         if(requiresProxy(task)){
             logger.debug("Proxifying ulr {}", task.url());
-            return rocketscrapeRenderer.renderHtml(task.url());
+            return rocketscrapeRenderer.renderHtml(task);
         }
         logger.debug("Using plain connection to get ulr {}", task.url());
-        return defaultRenderer.renderHtml(task.url());
+        return defaultRenderer.renderHtml(task);
     }
 
 

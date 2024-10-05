@@ -2,8 +2,8 @@
   "seeds": [
     "https://motos.mercadolibre.com.co/"
   ],
-  "idExtractorPattern": "\/(?<id>MCO-[0-9]{6,})",
-  "threadCount": 15,
+  "idExtractorPattern": ".*\/(?<id>MCO-[0-9]{6,}).*",
+  "threadCount": 4,
   "tagger": {
     "internal": "matches(host, 'motos?.mercadolibre.com.co')",
     "item": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
@@ -15,22 +15,24 @@
   },
   "priorities": {
     "seed": 1000,
-    "item": 500,
+    "item": 900,
     "listing": 100,
     "other": 10
   },
   "renderer": {
     "proxify": ["all"]
   },
+  "validation": {
+    "sleepTime": 5000,
+    "items": {
+      "expression": "containsElement(document, 'div.ui-pdp-specs')",
+      "maxRetries": 5
+    }
+  },
   "storage": {
     "includedTags": ["item"]
   },
   "taskKiller": {
     "timeout": "20m"
-  },
-  "contentValidator" : {
-    "disabled": false,
-    "includedTags": ["items"],
-    "validIf": "containsElement(document, 'div.ui-pdp-specs')"
   }
 }

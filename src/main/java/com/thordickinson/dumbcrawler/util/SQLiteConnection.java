@@ -1,5 +1,6 @@
 package com.thordickinson.dumbcrawler.util;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
 
@@ -86,11 +88,22 @@ public class SQLiteConnection implements AutoCloseable {
         }
     }
 
-    public int update(String sql){
-        return executeUpdate(getConnection(), sql);
+    public int update(String sql, Object... params){
+        return executeUpdate(getConnection(), sql, Arrays.asList(params));
     }
     public int update(String sql, List<?> params){
         return executeUpdate(getConnection(), sql, params);
+    }
+
+    public int insert(String table, List<String> columns, Object... params){
+        return insertMany(table, columns, List.of(Arrays.asList(params)));
+    }
+
+    public int insertMany(String table, List<String> columns, List<List<Object>> params){
+        var placeholders = generateParams(columns.size(), params.size());
+        String sql = "INSERT INTO %s (%s) VALUES %s".formatted(table, String.join(", ", columns), placeholders);
+        var allParams = params.stream().flatMap(Collection::stream).toList();
+        return executeUpdate(getConnection(), sql, allParams);
     }
 
     public <T> Optional<T> singleResult(Class<T> expectedType, String query) {

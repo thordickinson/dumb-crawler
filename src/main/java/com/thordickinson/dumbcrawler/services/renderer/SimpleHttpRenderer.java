@@ -8,6 +8,8 @@ import java.net.URI;
 import java.net.URL;
 
 
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
+import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 
 public class SimpleHttpRenderer extends AbstractCrawlingComponent implements HtmlRenderer {
@@ -17,16 +19,16 @@ public class SimpleHttpRenderer extends AbstractCrawlingComponent implements Htm
     }
 
     @Override
-    public HtmlRenderResponse renderHtml(String url) {
+    public String renderHtml(CrawlingTask task) {
         try {
-            return render(url);
-        } catch (Exception e) {
-            return HtmlRenderResponse.error(500, e);
+            return render(task);
+        } catch (IOException e) {
+            throw new CrawlingException(task, "HTML_RENDERING_ERROR", e.toString(), true, e);
         }
     }
 
-    private HtmlRenderResponse render(String url) throws IOException {
-        URL obj = URI.create(url).toURL();
+    private String render(CrawlingTask task) throws IOException {
+        URL obj = URI.create(transformUrl(task.url())).toURL();
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
         //add request header
@@ -34,7 +36,8 @@ public class SimpleHttpRenderer extends AbstractCrawlingComponent implements Htm
         con.setRequestProperty("Accept-Charset", "ISO-8859-1");
         int responseCode = con.getResponseCode();
         if (responseCode != 200) {
-            return HtmlRenderResponse.error(responseCode);
+            var retry = responseCode != 404;
+            throw new CrawlingException(task, "INVALID_STATUS_CODE", String.valueOf(responseCode), retry);
         }
 
         StringBuilder response = new StringBuilder();
@@ -44,6 +47,10 @@ public class SimpleHttpRenderer extends AbstractCrawlingComponent implements Htm
                 response.append(inputLine);
             }
         }
-        return HtmlRenderResponse.success(response.toString());
+        return response.toString();
+    }
+
+    protected String transformUrl(String original){
+        return original;
     }
 }

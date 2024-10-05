@@ -1,7 +1,9 @@
 package com.thordickinson.dumbcrawler.services.renderer;
 
 
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
+
 public interface HtmlRenderer {
 
-    HtmlRenderResponse renderHtml(String url);
+    String renderHtml(CrawlingTask url);
 }

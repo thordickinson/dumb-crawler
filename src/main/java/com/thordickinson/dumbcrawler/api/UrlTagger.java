@@ -40,12 +40,12 @@ public class UrlTagger extends AbstractCrawlingComponent {
         }
     }
 
-    public Collection<String> tagUrls(String url) {
+    public String[] tagUrls(String url) {
         var tags = tagExpressionMap.entrySet().stream()
                .filter(e -> expressionEvaluator.evaluateBoolean(e.getValue(), url))
                .map(Map.Entry::getKey)
-               .toList();
-        return !tags.isEmpty() ? tags : List.of(OTHER_TAG);
+               .toArray(String[]::new);
+        return tags.length != 0? tags : new String[]{ OTHER_TAG };
     }
 
 }

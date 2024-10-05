@@ -18,10 +18,9 @@ public class RocketscrapeRenderer extends SimpleHttpRenderer {
         return apiKey;
     }
     @Override
-    public HtmlRenderResponse renderHtml(String url) {
+    protected String transformUrl(String url) {
         logger.debug("Rendering using rocketscrapper: {}", url);
         String rocketScrapeEndpoint = "https://api.rocketscrape.com/";
-        var transformedUrl = rocketScrapeEndpoint + "?apiKey=" + getApiKey() + "&url=" + url;
-        return super.renderHtml(transformedUrl);
+        return rocketScrapeEndpoint + "?apiKey=" + getApiKey() + "&url=" + url;
     }
 }

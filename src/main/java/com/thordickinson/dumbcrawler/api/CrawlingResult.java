@@ -1,9 +1,12 @@
 package com.thordickinson.dumbcrawler.api;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 
-public record CrawlingResult(CrawlingTask task, CrawledPage page, Set<String> links,
-                long startedAt, long endedAt,
-                Optional<Exception> error) {
+
+public record CrawlingResult(CrawlingTask task,
+                             String content,
+                             Set<String> links,
+                             long startedAt,
+                             long endedAt) {
 }

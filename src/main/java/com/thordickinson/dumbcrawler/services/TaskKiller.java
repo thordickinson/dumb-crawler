@@ -33,21 +33,21 @@ public class TaskKiller extends ConfigurableCrawlingComponent implements Crawlin
 
     @Override
     public void handleCrawlingResult(CrawlingResult result) {
-        if (evaluateUrlFilter(result.page().originalUrl())) {
-            rejectedPageCount = 0;
-            lastValidPageTimestamp = System.currentTimeMillis();
-        } else {
-            rejectedPageCount++;
-        }
-
-        if (maxRejectedPageCount > 0)
-            setCounter("rejectedPages", rejectedPageCount);
-        if (timeout > 0 && lastValidPageTimestamp > 0) {
-            setCounter("lastValidPage",
-                    HumanReadable
-                            .formatDuration(Duration.ofMillis(System.currentTimeMillis() - lastValidPageTimestamp)));
-        }
-        checkConditions();
+//        if (evaluateUrlFilter(result.page().originalUrl())) {
+//            rejectedPageCount = 0;
+//            lastValidPageTimestamp = System.currentTimeMillis();
+//        } else {
+//            rejectedPageCount++;
+//        }
+//
+//        if (maxRejectedPageCount > 0)
+//            setCounter("rejectedPages", rejectedPageCount);
+//        if (timeout > 0 && lastValidPageTimestamp > 0) {
+//            setCounter("lastValidPage",
+//                    HumanReadable
+//                            .formatDuration(Duration.ofMillis(System.currentTimeMillis() - lastValidPageTimestamp)));
+//        }
+//        checkConditions();
     }
 
     private void checkConditions() {

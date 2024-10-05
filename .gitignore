@@ -31,4 +31,4 @@ build/
 ### VS Code ###
 .vscode/
 data/jobs/*/executions/
-data/logs/
+data/crawl_*.html

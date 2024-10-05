@@ -1,4 +1,4 @@
-package com.thordickinson.dumbcrawler.services.storage;
+package com.thordickinson.dumbcrawler.services;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
@@ -31,11 +31,6 @@ public class StorageManager extends AbstractCrawlingComponent {
         super("storage");
     }
 
-    public void storeResults(Collection<CrawlingResult> results, CrawlingSessionContext sessionContext) {
-        for (var result : results) {
-            storeSingleResult(result, sessionContext);
-        }
-    }
 
     private boolean shouldStore(CrawlingResult result, CrawlingSessionContext sessionContext){
         for(var tag : result.task().tags()){
@@ -46,24 +41,18 @@ public class StorageManager extends AbstractCrawlingComponent {
         return false;
     }
 
-    private void storeSingleResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
-
+    public void storeResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
         if(!shouldStore(result, sessionContext)){
             logger.debug("Ignoring url: {}", result.task().url());
-            sessionContext.increaseCounter("unsavedPages");
+            sessionContext.increaseCounter("UnsavedPages");
             return;
         }
 
-        var taskId = result.task().id();
+        var taskId = result.task().urlId();
         var fileToUpdate = getFileLocation(taskId);
-        if (result.page().content().isEmpty()) {
-            logger.warn("No content to save!: {}", result.task().url());
-            sessionContext.increaseCounter("warn.NoContentPages");
-            return;
-        }
-        sessionContext.increaseCounter("savedPages");
+        sessionContext.increaseCounter("SavedPages");
         var url = result.task().url();
-        var html = result.page().content().get();
+        var html = result.content();
         if (fileToUpdate.isPresent()) {
             updateWarcFile(fileToUpdate.get(), url, html, sessionContext);
         } else {

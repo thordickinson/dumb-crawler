@@ -5,18 +5,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.thordickinson.dumbcrawler.util.CollectionUtils;
+import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
 import jakarta.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
 
+import org.apache.hadoop.shaded.com.ctc.wstx.util.URLUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingTask;
-import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 
 public class URLStore {
 
@@ -33,20 +33,11 @@ public class URLStore {
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
-    private Map<String,Integer> priorities = Collections.emptyMap();
-    private final URLExpressionEvaluator expressionEvaluator = new URLExpressionEvaluator();
 
     public URLStore(CrawlingSessionContext context) {
         this.context = context;
         connection = new SQLiteConnection(context.getSessionDir());
-        configure();
         initialize();
-    }
-
-    private void configure(){
-        var priorities = context.getConfig("priorities");
-        this.priorities = priorities.map(p -> p.asMap()).map(m -> CollectionUtils.mapValues(m, x -> x.toInt())).
-                orElse(Collections.emptyMap());
     }
 
     private void loadCounters() {
@@ -63,12 +54,12 @@ public class URLStore {
     }
 
     private void updateOrphans() {
-        var orphans = connection.update("UPDATE links SET status = 0 WHERE status = 1");
+        var orphans = connection.update("UPDATE links SET status = ?, taken_at = NULL WHERE status = ?", Status.QUEUED, Status.PROCESSING);
         if (orphans > 0)
             logger.warn("{} orphan urls were updated", orphans);
     }
 
-    private void markForRefetch() {
+    private void resetStatus() {
         boolean refetch = false; // TODO: Make this configurable with a argument
         if (!refetch) {
             return;
@@ -85,13 +76,23 @@ public class URLStore {
             logger.info("Schema is initialized");
             updateOrphans();
             loadCounters();
-            markForRefetch();
+            resetStatus();
             return;
         }
 
         logger.info("Initializing schema");
-        String table = "CREATE TABLE links (hash TEXT PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, url TEXT, " +
-                "status INTEGER DEFAULT 0, priority INTEGER DEFAULT 0) WITHOUT ROWID";
+        String table = "CREATE TABLE links (" +
+                "hash TEXT PRIMARY KEY, " +
+                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                "url TEXT, " +
+                "tags TEXT, " +
+                "status INTEGER DEFAULT 0, " +
+                "priority INTEGER DEFAULT 0, " +
+                "taken_at DATETIME, " +
+                "completed_at DATETIME, " +
+                "error TEXT, " +
+                "attempt_count INTEGER DEFAULT 0 " +
+                ") WITHOUT ROWID";
         connection.update(table);
         connection.update("CREATE INDEX url_index ON links(url)");
         connection.update("CREATE INDEX status_index ON links(status)");
@@ -111,98 +112,96 @@ public class URLStore {
         return result;
     }
 
-    private void addUrlsInternal(Collection<CrawlingTask> urls) {
-        if (urls.isEmpty())
+    private String toSqlParams(CrawlingTask task){
+        String tags = String.join(",", task.tags());
+        return "( '%s', '%s', '%s', %d )".formatted(task.urlId(), task.url(), tags, task.priority());
+    }
+
+    private void addUrlsInternal(Collection<CrawlingTask> tasks) {
+        if (tasks.isEmpty())
             return;
 
-        logger.debug("Attempting to add {} new  urls", urls.size());
-        var filtered = urls.stream().filter(this::shouldAddLink).toList();
-        context.increaseCounter("ingnoredUrls", urls.size() - filtered.size());
+        logger.debug("Attempting to add {} new  urls", tasks.size());
+        var filtered = tasks.stream().filter(this::shouldAddLink).toList();
+        context.increaseCounter("ingnoredUrls", tasks.size() - filtered.size());
 
         if (filtered.isEmpty()) {
             logger.debug("No new urls to append");
             return;
         }
 
-        logger.debug("{} new urls to append", urls.size());
-        var hashList = urls.stream().map(url -> url.id()).toList();
-        var placeholders = JDBCUtil.generateParams(hashList.size());
+        logger.debug("{} new urls to append", tasks.size());
+        String placeholders = JDBCUtil.generateParams(tasks.size());
+        var params = tasks.stream().map(CrawlingTask::urlId).toList();
         var exists = "SELECT hash FROM links WHERE hash in %s".formatted(placeholders);
-        var existent = connection.query(exists, hashList)
-                .stream().map(r -> r.get(0)).map(String::valueOf)
+        var existent = connection.query(exists, params)
+                .stream().map(List::getFirst).map(String::valueOf)
                 .collect(Collectors.toSet());
 
-        var toInsert = urls.stream().collect(Collectors.toMap(CrawlingTask::id, Function.identity(), (a, b) -> b));
+        var toInsert = tasks.stream().collect(Collectors.toMap(CrawlingTask::urlId, Function.identity(), (a, b) -> b));
         for (var e : existent) {
             toInsert.remove(e);
         }
         if (toInsert.isEmpty())
             return;
 
-        var prioritized = toInsert.values().stream().map(task -> new NewUrl(task.id(), task.url(), getPriority(task))).toList();
 
-        var sqlFormat = JDBCUtil.generateParams(3, prioritized.size());
-        List<Object> params = prioritized.stream().flatMap(e -> Stream.of(e.hash(), e.url(), e.priority()))
-                .collect(Collectors.toList());
-        var insert = "INSERT INTO links (hash, url, priority) VALUES %s".formatted(sqlFormat);
-        connection.update(insert, params);
+        var objects = toInsert.values().stream().map(e -> List.<Object>of(e.urlId(), e.url(), String.join(",", e.tags()), e.priority())).toList();
+        connection.insertMany("links", List.of("hash", "url", "tags", "priority"), objects);
 
-        context.increaseCounter("discoveredUrls", prioritized.size());
-        queued += prioritized.size();
-        logger.debug("New urls added: {}", prioritized.size());
+        context.increaseCounter("discoveredUrls", toInsert.size());
+        queued += toInsert.size();
+        logger.debug("New urls added: {}", toInsert.size());
     }
 
     public Map<String, Integer> getStatus() {
         return Map.of("QUEUED", queued, "PROCESSED", processed, "FAILED", failed);
     }
 
-    public void addUrls(Collection<CrawlingTask> tasks) {
+    public void addTasks(Collection<CrawlingTask> tasks) {
         var deduplicated = new HashSet<>(tasks);
         addUrlsInternal(deduplicated);
     }
 
-    private int getPriority(CrawlingTask task) {
-        var tags = task.tags();
-        return Arrays.stream(tags).map(tag -> priorities.getOrDefault(tag, 0)).min(Comparator.naturalOrder()).orElse(0);
+    public void markTaskAsProcessed(CrawlingTask task) {
+       markProcessed(task, Status.PROCESSED, null);
     }
 
-    private static String joinIds(Set<CrawlingTask> urls) {
-        return urls.stream().map(CrawlingTask::id).map("'%s'"::formatted).collect(Collectors.joining(", "));
+    public void markTasAsFailed(CrawlingTask task, Throwable ex){
+        String detail = ex.toString();
+        if(ex instanceof CrawlingException){
+            detail = ((CrawlingException) ex).getErrorCode();
+        }
+        markProcessed(task, Status.FAILED, detail);
     }
 
-    public void setVisited(Set<CrawlingTask> tasks) {
-        updateStatus(tasks, Status.PROCESSED);
-        var size = tasks.size();
-        processed += size;
-        queued -= size;
+    private void markProcessed(CrawlingTask task, int status, String error){
+        var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ? WHERE hash = ?";
+        var updated = connection.update(sql, status, error, task.urlId());
+        if(updated != 1){
+            logger.warn("Unexpected update count {}", updated);
+        }
     }
 
-    public void setFailed(Set<CrawlingTask> tasks) {
-        updateStatus(tasks, Status.FAILED);
-        var size = tasks.size();
-        failed += size;
-        queued -= size;
-    }
+    public List<CrawlingTask> getUnvisited(int count) {
+        var sql = "SELECT url, hash, tags, priority FROM links WHERE status = ? ORDER BY priority DESC LIMIT ?";
+        var tasks = connection.query(sql, List.of(Status.QUEUED, count));
+        var results = tasks.stream().map( row -> {
+            var taskId = UUID.randomUUID().toString();
+            var hash = String.valueOf(row.get(1));
+            var url = String.valueOf(row.get(0));
+            var tags = String.valueOf(row.get(2)).split(",");
+            var priority = (int) row.get(3);
+            return new CrawlingTask(taskId, hash, url, tags, priority);
+        }).toList();
 
-    public void updateStatus(Set<CrawlingTask> tasks, int status) {
-        String ids = joinIds(tasks);
-        String sql = "UPDATE links SET status = %d WHERE hash IN (%s)".formatted(status, ids);
-        var updated = connection.update(sql);
-        context.increaseCounter("visitedUrls", tasks.size());
-        logger.debug("Marking {} urls as visited", updated);
-    }
-
-    public Set<String> getUnvisited(int count) {
-        var sql = "SELECT url, hash FROM links WHERE status = 0 ORDER BY priority DESC LIMIT ?";
-        var result = connection.query(sql, List.of(count));
-
-        var urls = result.stream().map(r -> r.get(0)).map(String::valueOf).collect(Collectors.toSet());
-        var hashes = result.stream().map(row -> row.get(1)).map("'%s'"::formatted).collect(Collectors.joining(", "));
-
-        var update = "UPDATE links SET status = 1 WHERE hash IN (%s)".formatted(hashes);
-        var updated = connection.update(update);
+        var params = new LinkedList<>();
+        params.add(Status.PROCESSING);
+        params.addAll(results.stream().map(CrawlingTask::url).toList());
+        var update = "UPDATE links SET status = ?, taken_at = CURRENT_TIMESTAMP WHERE hash IN %s".formatted(JDBCUtil.generateParams(results.size()));
+        var updated = connection.update(update, params);
         logger.debug("Returned {} urls to process", updated);
-        return urls;
+        return results;
     }
 
     @PreDestroy
@@ -218,7 +217,4 @@ public class URLStore {
     }
 }
 
-
-record NewUrl(String hash, String url, int priority) {
-}
 
