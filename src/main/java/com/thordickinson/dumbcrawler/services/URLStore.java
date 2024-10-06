@@ -3,7 +3,6 @@ package com.thordickinson.dumbcrawler.services;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
@@ -11,7 +10,6 @@ import jakarta.annotation.PreDestroy;
 
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
 
-import org.apache.hadoop.shaded.com.ctc.wstx.util.URLUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,9 +195,12 @@ public class URLStore {
 
         var params = new LinkedList<>();
         params.add(Status.PROCESSING);
-        params.addAll(results.stream().map(CrawlingTask::url).toList());
+        params.addAll(results.stream().map(CrawlingTask::urlId).toList());
         var update = "UPDATE links SET status = ?, taken_at = CURRENT_TIMESTAMP WHERE hash IN %s".formatted(JDBCUtil.generateParams(results.size()));
         var updated = connection.update(update, params);
+        if(updated != results.size()){
+            logger.warn("Cannot mark all the urls as taken");
+        }
         logger.debug("Returned {} urls to process", updated);
         return results;
     }

@@ -33,6 +33,7 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
     @Override
     public CrawlingResult call() {
         long startedAt = System.currentTimeMillis();
+        logger.info("Processing url: {}", task.url());
         var html = htmlRenderer.renderPage(task);
         if (StringUtils.isBlank(html)) {
             throw new CrawlingException(task, "EMPTY_RESPONSE_BODY", true);

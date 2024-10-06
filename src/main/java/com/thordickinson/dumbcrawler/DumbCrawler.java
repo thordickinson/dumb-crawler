@@ -138,6 +138,7 @@ public class DumbCrawler implements Runnable {
         urlTagger.initialize(context);
         urlHasher.initialize(context);
         contentValidator.initialize(context);
+        linkPrioritizer.initialize(context);
     }
 
     public void start(String jobId, Optional<String> executionId) {
