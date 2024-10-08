@@ -1,6 +1,5 @@
 package com.thordickinson.dumbcrawler.api;
 
-import java.util.Map;
 import java.util.Set;
 
 

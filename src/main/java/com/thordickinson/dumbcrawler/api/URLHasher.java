@@ -1,9 +1,10 @@
 package com.thordickinson.dumbcrawler.api;
-import java.util.regex.Pattern;
+
+import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;
 
-import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+import java.util.regex.Pattern;
 
 @Service
 public class URLHasher extends AbstractCrawlingComponent {

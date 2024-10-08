@@ -7,7 +7,9 @@ import com.thordickinson.dumbcrawler.util.CollectionUtils;
 import org.apache.commons.lang3.stream.Streams;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
 
 @Service
 public class LinkPrioritizer extends AbstractCrawlingComponent {

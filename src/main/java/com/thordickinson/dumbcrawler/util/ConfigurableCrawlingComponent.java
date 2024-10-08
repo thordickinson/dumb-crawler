@@ -3,7 +3,6 @@ package com.thordickinson.dumbcrawler.util;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
-
 import lombok.Getter;
 
 import java.util.Optional;

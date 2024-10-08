@@ -1,16 +1,15 @@
 package com.thordickinson.dumbcrawler.services.renderer;
 
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
+import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
+import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-
-
-import com.thordickinson.dumbcrawler.api.CrawlingTask;
-import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
-import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 
 public class SimpleHttpRenderer extends AbstractCrawlingComponent implements HtmlRenderer {
 

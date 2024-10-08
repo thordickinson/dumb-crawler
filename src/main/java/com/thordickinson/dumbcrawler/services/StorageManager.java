@@ -1,22 +1,24 @@
 package com.thordickinson.dumbcrawler.services;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.SQLiteConnection;
+import org.netpreserve.jwarc.MediaType;
+import org.netpreserve.jwarc.WarcResponse;
+import org.netpreserve.jwarc.WarcWriter;
+import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.*;
-
-import com.thordickinson.dumbcrawler.util.SQLiteConnection;
-import org.springframework.stereotype.Service;
-import org.netpreserve.jwarc.*;
-
-import java.io.IOException;
-import java.nio.file.*;
 
 
 @Service

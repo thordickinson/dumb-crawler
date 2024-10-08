@@ -1,13 +1,15 @@
 package com.thordickinson.dumbcrawler.util;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.*;
-
-import com.creativewidgetworks.expressionparser.*;
+import com.creativewidgetworks.expressionparser.FunctionToolbox;
+import com.creativewidgetworks.expressionparser.Parser;
+import com.creativewidgetworks.expressionparser.Value;
+import com.creativewidgetworks.expressionparser.ValueType;
 import com.thordickinson.dumbcrawler.expression.ExpressionConstants;
 import com.thordickinson.dumbcrawler.expression.ExpressionFunctions;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.*;
 
 public class ThreadLocalEvaluator implements ExpressionConstants {
 

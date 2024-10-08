@@ -1,5 +1,16 @@
 package com.thordickinson.dumbcrawler;
 
+import com.thordickinson.dumbcrawler.api.*;
+import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
+import com.thordickinson.dumbcrawler.services.*;
+import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -7,19 +18,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
-import com.thordickinson.dumbcrawler.services.*;
-import jakarta.annotation.PreDestroy;
-
-import com.thordickinson.dumbcrawler.api.*;
-import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.stereotype.Service;
-
-import static com.thordickinson.dumbcrawler.util.HumanReadable.*;
+import static com.thordickinson.dumbcrawler.util.HumanReadable.formatBits;
+import static com.thordickinson.dumbcrawler.util.HumanReadable.formatDuration;
 
 @Service
 public class DumbCrawler implements Runnable {

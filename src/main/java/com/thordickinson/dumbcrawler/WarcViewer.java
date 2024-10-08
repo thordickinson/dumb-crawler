@@ -1,16 +1,19 @@
 package com.thordickinson.dumbcrawler;
 
-import org.netpreserve.jwarc.*;
+import org.netpreserve.jwarc.WarcReader;
+import org.netpreserve.jwarc.WarcRecord;
+import org.netpreserve.jwarc.WarcResponse;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Iterator;
 import java.util.stream.Collectors;
-import java.awt.Desktop;
 
 public class WarcViewer {
 

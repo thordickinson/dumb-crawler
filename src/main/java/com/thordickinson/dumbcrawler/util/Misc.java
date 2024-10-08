@@ -1,5 +1,8 @@
 package com.thordickinson.dumbcrawler.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -8,9 +11,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Misc {
 

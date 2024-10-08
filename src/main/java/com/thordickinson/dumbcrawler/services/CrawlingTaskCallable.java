@@ -1,19 +1,19 @@
 package com.thordickinson.dumbcrawler.services;
 
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-
-import com.thordickinson.dumbcrawler.api.*;
+import com.thordickinson.dumbcrawler.api.CrawlingResult;
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
 import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
-
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 public class CrawlingTaskCallable implements Callable<CrawlingResult> {
 

@@ -1,12 +1,11 @@
 package com.thordickinson.dumbcrawler.expression;
 
+import com.creativewidgetworks.expressionparser.*;
+import org.jsoup.nodes.Document;
+
 import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Pattern;
-
-import org.jsoup.nodes.Document;
-
-import com.creativewidgetworks.expressionparser.*;
 
 public class ExpressionFunctions implements ExpressionConstants{
     private static final Set<String> COMMON_EXTENSIONS = Set.of("css", "js", "sass", "less", "ico", "jpeg", "jpg",

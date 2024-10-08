@@ -1,14 +1,16 @@
 package com.thordickinson.dumbcrawler.services.renderer;
 
 import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.util.CollectionUtils;
-import org.springframework.stereotype.Service;
-
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingTask;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.CollectionUtils;
+import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ContentRenderer extends AbstractCrawlingComponent {

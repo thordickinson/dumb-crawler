@@ -1,17 +1,16 @@
 package com.thordickinson.dumbcrawler.services;
 
-import java.util.Optional;
-
+import com.jsoniter.any.Any;
+import com.thordickinson.dumbcrawler.api.CrawlingResult;
+import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
+import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
+import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+import com.thordickinson.dumbcrawler.util.Misc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
-import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
-import com.thordickinson.dumbcrawler.api.CrawlingResult;
-import com.thordickinson.dumbcrawler.api.CrawlingResultHandler;
-import com.thordickinson.dumbcrawler.util.Misc;
+import java.util.Optional;
 
 @Service
 public class TimedTaskKiller extends AbstractCrawlingComponent implements CrawlingResultHandler {

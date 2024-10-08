@@ -1,14 +1,11 @@
 package com.thordickinson.dumbcrawler.api;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.stereotype.Service;
-
 import com.thordickinson.dumbcrawler.expression.URLExpressionEvaluator;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This component is responsible for tagging URLs based on a set of provided URL expressions.

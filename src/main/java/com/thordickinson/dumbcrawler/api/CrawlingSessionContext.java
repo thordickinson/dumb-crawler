@@ -1,23 +1,17 @@
 package com.thordickinson.dumbcrawler.api;
 
+import com.jsoniter.JsonIterator;
+import com.jsoniter.any.Any;
+import com.thordickinson.dumbcrawler.util.JsonUtil;
+import lombok.Getter;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import com.jsoniter.JsonIterator;
-import com.jsoniter.any.Any;
-import com.thordickinson.dumbcrawler.util.JsonUtil;
-
-import lombok.Getter;
 
 public class CrawlingSessionContext {
 

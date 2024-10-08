@@ -1,20 +1,17 @@
 package com.thordickinson.dumbcrawler.util;
 
-import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.thordickinson.dumbcrawler.util.JDBCUtil.*;
+import static com.thordickinson.dumbcrawler.util.JDBCUtil.executeUpdate;
+import static com.thordickinson.dumbcrawler.util.JDBCUtil.generateParams;
 
 public class SQLiteConnection implements AutoCloseable {
 
