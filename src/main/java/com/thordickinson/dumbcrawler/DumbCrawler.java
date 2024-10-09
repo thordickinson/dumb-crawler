@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static com.thordickinson.dumbcrawler.util.HumanReadable.formatBits;
 import static com.thordickinson.dumbcrawler.util.HumanReadable.formatDuration;
@@ -89,6 +86,12 @@ public class DumbCrawler implements Runnable {
         runningTasks.removeAll(completedTasks);
     }
 
+    private void handleCrawlingException(CrawlingException ex){
+        logger.warn("Error crawling page: {}", ex.getTask().taskId());
+        sessionContext.increaseCounter(ex.getErrorCode());
+        urlStore.markTasAsFailed(ex.getTask(), ex);
+    }
+
     private void processCompletedTask(TaskWrapper wrapper, CrawlingSessionContext sessionContext) {
         var future = wrapper.future();
         try {
@@ -98,12 +101,15 @@ public class DumbCrawler implements Runnable {
             sessionContext.increaseCounter("PROCESSED_URLS");
             urlStore.markTaskAsProcessed(result.task());
         } catch (CrawlingException ex) {
-            logger.warn("Error crawling page: {}", wrapper.task().taskId());
-            sessionContext.increaseCounter(ex.getErrorCode());
-            urlStore.markTasAsFailed(wrapper.task(), ex);
+            handleCrawlingException(ex);
         } catch (Throwable ex) {
             logger.error("An unexpected error was caught: {} -> {}", wrapper.task().taskId(), wrapper.task().url(), ex);
-            sessionContext.increaseCounter(ex.getClass().getSimpleName());
+            var exception = ex instanceof ExecutionException && ex.getCause() != null? ex.getCause() : ex;
+            if(exception instanceof  CrawlingException){
+                handleCrawlingException((CrawlingException) exception);
+                return;
+            }
+            sessionContext.increaseCounter("EXCEPTION_" + exception.getClass().getSimpleName());
             urlStore.markTasAsFailed(wrapper.task(), ex);
         }
     }

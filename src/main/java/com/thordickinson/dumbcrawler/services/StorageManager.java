@@ -55,7 +55,7 @@ public class StorageManager extends AbstractCrawlingComponent {
 
         var taskId = result.task().urlId();
         var fileToUpdate = getFileLocation(taskId);
-        sessionContext.increaseCounter("SavedPages");
+        sessionContext.increaseCounter("SAVED_PAGES");
         var url = result.task().url();
         var html = result.content();
         if (fileToUpdate.isPresent()) {

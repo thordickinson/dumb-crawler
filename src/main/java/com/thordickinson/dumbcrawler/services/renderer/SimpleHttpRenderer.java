@@ -36,7 +36,7 @@ public class SimpleHttpRenderer extends AbstractCrawlingComponent implements Htm
         int responseCode = con.getResponseCode();
         if (responseCode != 200) {
             var retry = responseCode != 404;
-            throw new CrawlingException(task, "INVALID_STATUS_CODE", String.valueOf(responseCode), retry);
+            throw new CrawlingException(task, "INVALID_STATUS_CODE_" + responseCode, String.valueOf(responseCode), retry);
         }
 
         StringBuilder response = new StringBuilder();
