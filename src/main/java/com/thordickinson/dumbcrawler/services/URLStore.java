@@ -107,18 +107,13 @@ public class URLStore {
         return result;
     }
 
-    private String toSqlParams(CrawlingTask task){
-        String tags = String.join(",", task.tags());
-        return "( '%s', '%s', '%s', %d )".formatted(task.urlId(), task.url(), tags, task.priority());
-    }
-
     private void addUrlsInternal(Collection<CrawlingTask> tasks) {
         if (tasks.isEmpty())
             return;
 
         logger.debug("Attempting to add {} new  urls", tasks.size());
         var filtered = tasks.stream().filter(this::shouldAddLink).toList();
-        context.increaseCounter("ingnoredUrls", tasks.size() - filtered.size());
+        context.increaseCounter("IGNORED_URLS", tasks.size() - filtered.size());
 
         if (filtered.isEmpty()) {
             logger.debug("No new urls to append");
@@ -144,7 +139,7 @@ public class URLStore {
         var objects = toInsert.values().stream().map(e -> List.<Object>of(e.urlId(), e.url(), String.join(",", e.tags()), e.priority())).toList();
         connection.insertMany("links", List.of("hash", "url", "tags", "priority"), objects);
 
-        context.increaseCounter("discoveredUrls", toInsert.size());
+        context.increaseCounter("DISCOVERED_URLS", toInsert.size());
         queued += toInsert.size();
         logger.debug("New urls added: {}", toInsert.size());
     }
@@ -171,23 +166,25 @@ public class URLStore {
     }
 
     private void markProcessed(CrawlingTask task, int status, String error){
-        var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ? WHERE hash = ?";
-        var updated = connection.update(sql, status, error, task.urlId());
+        var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ?, attempt_count = ? WHERE hash = ?";
+        var attempt = task.attempt() + 1;
+        var updated = connection.update(sql, status, error, attempt, task.urlId());
         if(updated != 1){
             logger.warn("Unexpected update count {}", updated);
         }
     }
 
     public List<CrawlingTask> getUnvisited(int count) {
-        var sql = "SELECT url, hash, tags, priority FROM links WHERE status = ? ORDER BY priority DESC LIMIT ?";
-        var tasks = connection.query(sql, List.of(Status.QUEUED, count));
+        var sql = "SELECT url, hash, tags, priority, attempt_count FROM links WHERE status = ? AND attempt_count < ? ORDER BY priority DESC LIMIT ?";
+        var tasks = connection.query(sql, List.of(Status.QUEUED, count, 7));
         var results = tasks.stream().map( row -> {
             var taskId = UUID.randomUUID().toString();
             var hash = String.valueOf(row.get(1));
             var url = String.valueOf(row.get(0));
             var tags = String.valueOf(row.get(2)).split(",");
             var priority = (int) row.get(3);
-            return new CrawlingTask(taskId, hash, url, tags, priority);
+            var attempt = (int) row.get(4);
+            return new CrawlingTask(taskId, hash, url, tags, attempt, priority);
         }).toList();
 
         var params = new LinkedList<>();

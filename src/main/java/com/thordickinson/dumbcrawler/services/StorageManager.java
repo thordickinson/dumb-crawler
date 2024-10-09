@@ -24,6 +24,9 @@ import java.util.*;
 @Service
 public class StorageManager extends AbstractCrawlingComponent {
 
+
+    public static final String LAST_NEW_PAGE_SAVED_AT_KEY = "LAST_NEW_PAGE_SAVED_AT";
+
     private Path currentFile;
     private long maxFileSize = 1024 * 1024 * 50; // 50 MB max file size
     private SQLiteConnection dbConnection;
@@ -46,7 +49,7 @@ public class StorageManager extends AbstractCrawlingComponent {
     public void storeResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
         if(!shouldStore(result, sessionContext)){
             logger.debug("Ignoring url: {}", result.task().url());
-            sessionContext.increaseCounter("UnsavedPages");
+            sessionContext.increaseCounter("UNSAVED_PAGES");
             return;
         }
 
@@ -96,7 +99,7 @@ public class StorageManager extends AbstractCrawlingComponent {
     private void updateWarcFile(Path warcFilePath, String url, String content, CrawlingSessionContext sessionContext) {
 
         logger.info("Updating file with new crawled page {}", url);
-        sessionContext.increaseCounter("updateSavedPages");
+        sessionContext.increaseCounter("UPDATED_PAGES");
         try (OutputStream outStream = Files.newOutputStream(warcFilePath, StandardOpenOption.APPEND)) {
             WarcWriter writer = new WarcWriter(outStream);
 
@@ -126,7 +129,8 @@ public class StorageManager extends AbstractCrawlingComponent {
      * @param content The content of the web page.
      */
     private void saveToCurrentFile(String url, String content, CrawlingSessionContext sessionContext) {
-        sessionContext.increaseCounter("newSavedPages");
+        sessionContext.increaseCounter("NEW_SAVED_PAGES");
+        sessionContext.setVariable(LAST_NEW_PAGE_SAVED_AT_KEY, System.currentTimeMillis());
         logger.info("Saving page for the first time {}", url);
         try {
             // Check if the current file exists and its size

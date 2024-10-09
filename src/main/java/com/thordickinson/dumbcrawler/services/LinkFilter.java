@@ -28,17 +28,17 @@ public class LinkFilter extends AbstractCrawlingComponent {
         }
         for (var tag : task.tags()) {
             if (blacklist.contains(tag)) {
-                sessionContext.increaseCounter("ignoredLinks");
+                sessionContext.increaseCounter("IGNORED_LINKS");
                 logger.debug("Url in blacklist: {}", url);
                 return false;
             }
             if (whitelist.contains(tag)) {
-                sessionContext.increaseCounter("allowedLinks");
+                sessionContext.increaseCounter("ALLOWED_LINKS");
                 logger.debug("Url is in whitelist: {}", url);
                 return true;
             }
         }
-        sessionContext.increaseCounter(allowByDefault ? "allowedLinks" : "ignoredLinks");
+        sessionContext.increaseCounter(allowByDefault ? "ALLOWED_LINKS" : "IGNORED_LINKS");
         logger.debug("Allowing by default {}: {}", allowByDefault, url);
         return allowByDefault;
     }

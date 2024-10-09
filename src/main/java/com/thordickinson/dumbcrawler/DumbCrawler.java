@@ -24,7 +24,9 @@ import static com.thordickinson.dumbcrawler.util.HumanReadable.formatDuration;
 @Service
 public class DumbCrawler implements Runnable {
 
-    private record TaskWrapper(CrawlingTask task, Future<CrawlingResult> future){}
+    private record TaskWrapper(CrawlingTask task, Future<CrawlingResult> future) {
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(DumbCrawler.class);
     private static final Logger errorLogger = LoggerFactory.getLogger(DumbCrawler.class.getName() + ".error");
 
@@ -45,6 +47,8 @@ public class DumbCrawler implements Runnable {
     private ContentValidator contentValidator;
     @Autowired
     private LinkPrioritizer linkPrioritizer;
+    @Autowired
+    private TaskKiller taskKiller;
 
     private boolean stopped = false;
     private ThreadPoolExecutor executor;
@@ -67,7 +71,11 @@ public class DumbCrawler implements Runnable {
         processCompletedTasks(sessionContext);
         scheduleNewTasks(sessionContext);
         printCounters(sessionContext);
-        sleep();
+        if (taskKiller.shouldStop(sessionContext)) {
+            sessionContext.stopCrawling();
+        } else {
+            sleep();
+        }
     }
 
     private void processCompletedTasks(CrawlingSessionContext sessionContext) {
@@ -93,21 +101,21 @@ public class DumbCrawler implements Runnable {
             logger.warn("Error crawling page: {}", wrapper.task().taskId());
             sessionContext.increaseCounter(ex.getErrorCode());
             urlStore.markTasAsFailed(wrapper.task(), ex);
-        } catch(Throwable ex){
+        } catch (Throwable ex) {
             logger.error("An unexpected error was caught: {} -> {}", wrapper.task().taskId(), wrapper.task().url(), ex);
             sessionContext.increaseCounter(ex.getClass().getSimpleName());
             urlStore.markTasAsFailed(wrapper.task(), ex);
         }
     }
 
-    private CrawlingTask createLinkTask(String link){
+    private CrawlingTask createLinkTask(String link) {
         var tags = urlTagger.tagUrls(link);
         var priority = linkPrioritizer.getPriorityForTag(tags);
         var urlId = urlHasher.hashUrl(link);
-        return new CrawlingTask(null, urlId, link, tags, priority);
+        return new CrawlingTask(null, urlId, link, tags, 0, priority);
     }
 
-    private void saveLinks(Collection<String> toAdd){
+    private void saveLinks(Collection<String> toAdd) {
         var links = toAdd.stream().map(this::createLinkTask)
                 .filter(l -> linkFilter.isURLAllowed(l, sessionContext)).toList();
         urlStore.addTasks(links);
@@ -139,6 +147,7 @@ public class DumbCrawler implements Runnable {
         urlHasher.initialize(context);
         contentValidator.initialize(context);
         linkPrioritizer.initialize(context);
+        taskKiller.initialize(context);
     }
 
     public void start(String jobId, Optional<String> executionId) {
@@ -203,7 +212,19 @@ public class DumbCrawler implements Runnable {
         if (executor != null) {
             awaitTermination();
         }
+        stopComponents();
         appContext.close();
+    }
+
+    private void stopComponents() {
+        storageManager.destroy();
+        linkFilter.destroy();
+        contentRenderer.destroy();
+        urlTagger.destroy();
+        urlHasher.destroy();
+        contentValidator.destroy();
+        linkPrioritizer.destroy();
+        taskKiller.destroy();
     }
 
     private void scheduleNewTasks(CrawlingSessionContext sessionContext) {
@@ -236,7 +257,7 @@ public class DumbCrawler implements Runnable {
             return;
         }
         var newTasks = urls.stream().map(t -> new CrawlingTaskCallable(t, contentRenderer, contentValidator))
-                .map(c ->  new TaskWrapper(c.getTask(), executor.submit(c))).toList();
+                .map(c -> new TaskWrapper(c.getTask(), executor.submit(c))).toList();
         runningTasks.addAll(newTasks);
     }
 
@@ -247,12 +268,7 @@ public class DumbCrawler implements Runnable {
         int priority = linkPrioritizer.getPriorityForTag(tags);
         allTags.addAll(Arrays.asList(tags));
         logger.debug("Tag assignment: {} -> {}", allTags, url);
-        return new CrawlingTask("", hash, url, allTags.toArray(new String[0]), priority);
-    }
-
-    private CrawlingTaskCallable createTask(String url, String... extraTags) {
-        var task = createTaskParams(url, extraTags);
-        return new CrawlingTaskCallable(task, contentRenderer, contentValidator);
+        return new CrawlingTask("", hash, url, allTags.toArray(new String[0]), 0, priority);
     }
 
     private void sleep() {

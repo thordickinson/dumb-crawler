@@ -15,8 +15,6 @@ import static com.thordickinson.dumbcrawler.util.JDBCUtil.generateParams;
 
 public class SQLiteConnection implements AutoCloseable {
 
-
-
     private record TableDef(String name, Map<String, String> columns, boolean withRowId, List<String> indices) {
         public String getSQL() {
             var columns = columns().entrySet().stream()
@@ -52,7 +50,6 @@ public class SQLiteConnection implements AutoCloseable {
     public void addTable(String name, Map<String, String> columns){
         addTable(name, columns, false);
     }
-
 
     public Connection getConnection(){
         if(connection == null){

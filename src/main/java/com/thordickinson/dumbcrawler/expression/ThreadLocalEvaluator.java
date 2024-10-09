@@ -1,11 +1,9 @@
-package com.thordickinson.dumbcrawler.util;
+package com.thordickinson.dumbcrawler.expression;
 
 import com.creativewidgetworks.expressionparser.FunctionToolbox;
 import com.creativewidgetworks.expressionparser.Parser;
 import com.creativewidgetworks.expressionparser.Value;
 import com.creativewidgetworks.expressionparser.ValueType;
-import com.thordickinson.dumbcrawler.expression.ExpressionConstants;
-import com.thordickinson.dumbcrawler.expression.ExpressionFunctions;
 
 import java.math.BigDecimal;
 import java.time.Instant;

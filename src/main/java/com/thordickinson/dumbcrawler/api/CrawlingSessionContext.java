@@ -34,6 +34,7 @@ public class CrawlingSessionContext {
     @Getter
     private final long startedAt = System.currentTimeMillis();
     private final Map<String, Serializable> counters = new HashMap<>();
+    private final Map<String, Serializable> variables = new HashMap<>();
 
     private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
@@ -101,6 +102,14 @@ public class CrawlingSessionContext {
         int count = (int) this.counters.getOrDefault(key, 0);
         count += amount;
         this.counters.put(key, count);
+    }
+
+    public void setVariable(String key, Serializable value){
+        variables.put(key, value);
+    }
+
+    public <T extends  Serializable> T getVariable(String key, T defaultVal){
+        return (T) variables.getOrDefault(key, defaultVal);
     }
 
     public void setCounter(String key, Serializable value) {

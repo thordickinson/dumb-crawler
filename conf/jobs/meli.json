@@ -33,6 +33,6 @@
     "includedTags": ["item"]
   },
   "taskKiller": {
-    "timeout": "20m"
+    "timeout": "5m"
   }
 }

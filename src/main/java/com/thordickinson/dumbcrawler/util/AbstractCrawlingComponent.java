@@ -3,6 +3,7 @@ package com.thordickinson.dumbcrawler.util;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingComponent;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
+import com.thordickinson.dumbcrawler.expression.ThreadLocalEvaluator;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
