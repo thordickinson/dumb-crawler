@@ -1,0 +1,33 @@
+{
+  "seeds": [
+    "https://www.ciencuadras.com"
+  ],
+  "idExtractorPattern": ".*-(?<id>[0-9]{6,}).*",
+  "threadCount": 4,
+  "tagger": {
+    "internal": "matches(host, '([a-z]*.)?ciencuadras.com')",
+    "item": "matches(path, '^\/inmueble\/.*')"
+  },
+  "linkFilter": {
+    "whitelist": ["internal"],
+    "blacklist": ["other"]
+  },
+  "priorities": {
+    "seed": 1000,
+    "item": 900,
+    "listing": 100,
+    "other": 10
+  },
+  "renderer": {
+    "proxify": ["all"]
+  },
+  "validationSelectors": {
+    "item": "div.detail-gallery"
+  },
+  "storage": {
+    "includedTags": ["item"]
+  },
+  "taskKiller": {
+    "timeout": "5mvb"
+  }
+}

@@ -19,8 +19,6 @@ public class DumbCrawlerApplication {
     private DumbCrawler crawler;
     @Value("${crawler.jobId:#{null}}")
     private Optional<String> job;
-    @Value("${crawler.executionId:#{null}}")
-    private Optional<String> executionId;
     private static final Logger logger = LoggerFactory.getLogger(DumbCrawlerApplication.class);
 
     public static void main(String[] args) {
@@ -37,6 +35,6 @@ public class DumbCrawlerApplication {
             logger.warn("No job to execute");
             return;
         }
-        crawler.start(job.get(), executionId);
+        crawler.start(job.get());
     }
 }

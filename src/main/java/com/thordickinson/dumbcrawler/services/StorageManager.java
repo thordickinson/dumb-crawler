@@ -3,6 +3,7 @@ package com.thordickinson.dumbcrawler.services;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
+import com.thordickinson.dumbcrawler.api.CrawlingTask;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
 import org.netpreserve.jwarc.MediaType;
@@ -53,69 +54,49 @@ public class StorageManager extends AbstractCrawlingComponent {
             return;
         }
 
-        var taskId = result.task().urlId();
-        var fileToUpdate = getFileLocation(taskId);
+        var urlHash = result.task().urlId();
+        var fileToUpdate = getFileLocation(result.task());
         sessionContext.increaseCounter("SAVED_PAGES");
         var url = result.task().url();
         var html = result.content();
         if (fileToUpdate.isPresent()) {
-            updateWarcFile(fileToUpdate.get(), url, html, sessionContext);
+            updateWarcFile(fileToUpdate.get(), result.task(), html, sessionContext);
         } else {
-            saveToCurrentFile(url, html, sessionContext);
+            saveToCurrentFile(result.task(), html, sessionContext);
         }
     }
 
-    /**
-     * Appends the page to the index that relates pages to files.
-     *
-     * @param resourceId the page to store
-     */
-    private void addToIndex(String resourceId) {
+    private void addToIndex(CrawlingTask task) {
         //Adds the page + the currentFile to our index [do not implement this]
         var path = getContext().getDataPath().relativize(currentFile).toString();
-        dbConnection.update("INSERT INTO url_index (url_hash, file_path) VALUES (?, ?)", List.of(resourceId, path));
+        dbConnection.update("INSERT INTO url_index (url_hash, file_path) VALUES (?, ?)", List.of(task.urlId(), path));
     }
 
-    /**
-     * Will return the file location where this page is currently located, so the file
-     * can be updated including the new version.
-     *
-     * @param resourceId the id or hash of the url of the resource
-     * @return the path of the file containing the current version of the page or empty if there is
-     * no file containing the document.
-     */
-    private Optional<Path> getFileLocation(String resourceId) {
-        return dbConnection.singleResult(String.class, "SELECT file_path FROM url_index WHERE url_hash = ?", resourceId)
+    private Optional<Path> getFileLocation(CrawlingTask task) {
+        return dbConnection.singleResult(String.class, "SELECT file_path FROM url_index WHERE url_hash = ?", task.urlId())
                 .map(Path::of);
     }
 
-    /**
-     * Updates an existing WARC file with new content.
-     *
-     * @param warcFilePath The path to the WARC file.
-     * @param url          The URL of the page being archived.
-     * @param content      The content of the web page.
-     */
-    private void updateWarcFile(Path warcFilePath, String url, String content, CrawlingSessionContext sessionContext) {
+    private void updateWarcFile(Path warcFilePath, CrawlingTask task, String content, CrawlingSessionContext sessionContext) {
 
-        logger.info("Updating file with new crawled page {}", url);
+        logger.info("Updating file with new crawled page {}", task.url());
         sessionContext.increaseCounter("UPDATED_PAGES");
         try (OutputStream outStream = Files.newOutputStream(warcFilePath, StandardOpenOption.APPEND)) {
             WarcWriter writer = new WarcWriter(outStream);
 
             // Create a new WARC response record
-            WarcResponse response = createResponse(url, content);
+            WarcResponse response = createResponse(task, content);
             // Write the new record to the WARC file
             writer.write(response);
 
-            logger.info("Updated WARC file with new content for URL: {}", url);
+            logger.info("Updated WARC file with new content for URL: {}", task.url());
         } catch (IOException e) {
             logger.error("Error updating WARC file: {}", warcFilePath, e);
         }
     }
 
-    private WarcResponse createResponse(String url, String content){
-        return new WarcResponse.Builder(URI.create(url))
+    private WarcResponse createResponse(CrawlingTask task, String content){
+        return new WarcResponse.Builder(URI.create(task.url()))
                 .body(MediaType.HTML_UTF8, content.getBytes(StandardCharsets.UTF_8))
                 .date(Instant.now())
                 .build();
@@ -125,13 +106,13 @@ public class StorageManager extends AbstractCrawlingComponent {
      * Saves new content to the current WARC file. If the file exceeds the max size,
      * a new WARC file is created.
      *
-     * @param url     The URL of the page being archived.
+     * @param task     The URL of the page being archived.
      * @param content The content of the web page.
      */
-    private void saveToCurrentFile(String url, String content, CrawlingSessionContext sessionContext) {
+    private void saveToCurrentFile(CrawlingTask task, String content, CrawlingSessionContext sessionContext) {
         sessionContext.increaseCounter("NEW_SAVED_PAGES");
         sessionContext.setVariable(LAST_NEW_PAGE_SAVED_AT_KEY, System.currentTimeMillis());
-        logger.info("Saving page for the first time {}", url);
+        logger.info("Saving page for the first time {}", task.url());
         try {
             // Check if the current file exists and its size
             if (currentFile == null || Files.notExists(currentFile) || Files.size(currentFile) >= maxFileSize) {
@@ -143,11 +124,11 @@ public class StorageManager extends AbstractCrawlingComponent {
             try (OutputStream outStream = Files.newOutputStream(currentFile, StandardOpenOption.APPEND)) {
                 WarcWriter writer = new WarcWriter(outStream);
                 // Create a new WARC response record
-                WarcResponse response = createResponse(url, content);
+                WarcResponse response = createResponse(task, content);
                 // Write the new record to the WARC file
                 writer.write(response);
                 // Add the resource to the index (for future updates)
-                addToIndex(url);
+                addToIndex(task);
                 logger.info("Saved new content to WARC file: {}", currentFile);
             }
         } catch (IOException e) {

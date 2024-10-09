@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -81,13 +82,26 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
         }
     }
 
-    private Set<String> getLinks(Document document) { 
-        return document.select("a[href]")
-               .stream()
-               .filter(l -> !"nofollow".equals(l.attr("rel")))
-               .map(l -> l.absUrl("href"))
-               .filter(StringUtils::isNotBlank)
-               .collect(Collectors.toSet());
+    private boolean isValidLink(String link){
+        if(StringUtils.isBlank(link)) return false;
+        link = link.trim();
+        return link.startsWith("http://") || link.startsWith("https://");
+    }
+
+    private Set<String> getLinks(Document document, String selector) {
+        return document.select(selector)
+                .stream()
+                .filter(l -> !"nofollow".equals(l.attr("rel")))
+                .map(l -> l.absUrl("href"))
+                .filter(this::isValidLink)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getLinks(Document document) {
+        var allLinks = new HashSet<String>();
+        allLinks.addAll(getLinks(document, "a[href]"));
+        allLinks.addAll(getLinks(document, "link[href]"));
+        return allLinks;
     }
 
 }

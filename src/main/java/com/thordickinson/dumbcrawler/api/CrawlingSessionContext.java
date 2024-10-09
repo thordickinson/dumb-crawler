@@ -36,29 +36,23 @@ public class CrawlingSessionContext {
     private final Map<String, Serializable> counters = new HashMap<>();
     private final Map<String, Serializable> variables = new HashMap<>();
 
-    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
-    public CrawlingSessionContext(String jobId, Optional<String> executionId) {
+    public CrawlingSessionContext(String jobId, String sessionId, Path jobOutputDir) {
         this.jobId = jobId;
 
         jobsConfDir = Path.of("./conf/jobs");
         jobConfiguration = loadJob(jobsConfDir);
-        jobOutputDir = getOutputDir();
+        this.jobOutputDir = jobOutputDir;
 
-        this.sessionId = executionId.orElseGet(() -> DATETIME_FORMAT.format(new Date()));
+        this.sessionId = sessionId;
         sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId).resolve("crawl");
         dataPath = jobOutputDir.resolve("data");
-        if(!sessionDir.toFile().mkdirs()){
+        if(!sessionDir.toFile().isDirectory() && !sessionDir.toFile().mkdirs()){
             throw new RuntimeException("Unable to create output dirs");
         }
     }
 
-    private Path getOutputDir(){
-        String outDir = System.getenv("CRAWLER_OUT_DIR");
-        String userHome = System.getProperty("user.home");
-        String basePath = outDir == null? userHome : outDir;
-        return Path.of(basePath, ".crawler", "jobs", jobId);
-    }
+
 
     public Set<String> getSeeds() {
         return JsonUtil.get(jobConfiguration, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)

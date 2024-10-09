@@ -11,6 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -26,6 +31,9 @@ public class DumbCrawler implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(DumbCrawler.class);
     private static final Logger errorLogger = LoggerFactory.getLogger(DumbCrawler.class.getName() + ".error");
+    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss");
+    private static final String TERMINATION_MARKER_FILE = "terminated.marker";
+
 
     private URLStore urlStore;
     @Autowired
@@ -69,7 +77,7 @@ public class DumbCrawler implements Runnable {
         scheduleNewTasks(sessionContext);
         printCounters(sessionContext);
         if (taskKiller.shouldStop(sessionContext)) {
-            sessionContext.stopCrawling();
+            stop();
         } else {
             sleep();
         }
@@ -96,7 +104,11 @@ public class DumbCrawler implements Runnable {
         var future = wrapper.future();
         try {
             var result = future.get();
-            saveLinks(result.links());
+            var links = result.links();
+            if(links.isEmpty()){
+                logger.warn("Page does not contains any links: {}", wrapper.task().url());
+            }
+            saveLinks(links);
             storageManager.storeResult(result, sessionContext);
             sessionContext.increaseCounter("PROCESSED_URLS");
             urlStore.markTaskAsProcessed(result.task());
@@ -124,6 +136,7 @@ public class DumbCrawler implements Runnable {
     private void saveLinks(Collection<String> toAdd) {
         var links = toAdd.stream().map(this::createLinkTask)
                 .filter(l -> linkFilter.isURLAllowed(l, sessionContext)).toList();
+        logger.debug("Adding {} new links to store", links.size());
         urlStore.addTasks(links);
     }
 
@@ -156,9 +169,11 @@ public class DumbCrawler implements Runnable {
         taskKiller.initialize(context);
     }
 
-    public void start(String jobId, Optional<String> executionId) {
+    public void start(String jobId) {
         stopped = false;
-        this.sessionContext = new CrawlingSessionContext(jobId, executionId);
+        var outputDir = getOutputDir(jobId);
+        var sessionId = getSessionId(outputDir);
+        this.sessionContext = new CrawlingSessionContext(jobId, sessionId, outputDir);
         initializeComponents(sessionContext);
         logger.info("Starting crawling session: {}", sessionContext.getSessionId());
 
@@ -173,6 +188,35 @@ public class DumbCrawler implements Runnable {
         this.nextStatisticsPrint = System.currentTimeMillis() + 5000;
         this.stopped = false;
         loopThread.start();
+    }
+
+    private Path getOutputDir(String jobId){
+        String outDir = System.getenv("CRAWLER_OUT_DIR");
+        String userHome = System.getProperty("user.home");
+        String basePath = outDir == null? userHome : outDir;
+        return Path.of(basePath, ".crawler", "jobs", jobId);
+    }
+
+    private String getSessionId(Path outputDir){
+        var sessionsDir = outputDir.resolve("sessions").toFile();
+        if(sessionsDir.isDirectory()){
+            var sessionDirs = sessionsDir.listFiles();
+            if(sessionDirs != null){
+                var sessions = new ArrayList<>(Arrays.asList(sessionDirs));
+                sessions.sort(Comparator.comparing(File::getName));
+                var reversed = sessions.reversed();
+                for(var session : reversed){
+                    var terminationFile = session.toPath().resolve(TERMINATION_MARKER_FILE);
+                    if(!terminationFile.toFile().exists()){
+                        logger.info("Resuming session: {}", session.getName());
+                        return session.getName();
+                    }
+                }
+            }
+        }
+        var sessionId = DATETIME_FORMAT.format(new Date());
+        logger.info("Creating new session: {}", sessionId);
+        return sessionId;
     }
 
     public void printCounters(CrawlingSessionContext ctx) {
@@ -261,14 +305,24 @@ public class DumbCrawler implements Runnable {
         int toSchedule = maxQueuedTasks - size;
         var urls = urlStore.getUnvisited(toSchedule);
         if (urls.isEmpty() && runningTasks.isEmpty()) {
-            logger.debug("No more urls to schedule and no threads are running.");
-            stop();
+            logger.warn("No more urls to schedule and no threads are running.");
+            terminateSession();
             return;
         }
         var newTasks = urls.stream().map(t -> new CrawlingTaskCallable(t, contentRenderer,
                         contentValidator, sessionContext.getSessionDir()))
                 .map(c -> new TaskWrapper(c.getTask(), executor.submit(c))).toList();
         runningTasks.addAll(newTasks);
+    }
+
+    private void terminateSession(){
+        try {
+            var flagFile = sessionContext.getSessionDir().resolve(TERMINATION_MARKER_FILE);
+            flagFile.toFile().createNewFile();
+        } catch (IOException e) {
+            logger.error("Unable to mark session as terminated", e);
+        }
+        stop();
     }
 
     private CrawlingTask createTaskParams(String url, String... extraTags) {

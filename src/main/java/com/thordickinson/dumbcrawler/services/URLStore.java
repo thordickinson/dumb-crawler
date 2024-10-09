@@ -175,7 +175,7 @@ public class URLStore {
     }
 
     public List<CrawlingTask> getUnvisited(int count) {
-        var sql = "SELECT url, hash, tags, priority, attempt_count FROM links WHERE status = ? AND attempt_count < ? ORDER BY priority DESC LIMIT ?";
+        var sql = "SELECT url, hash, tags, priority, attempt_count FROM links WHERE status = ? AND attempt_count < ? ORDER BY priority DESC, attempt_count LIMIT ?";
         var tasks = connection.query(sql, List.of(Status.QUEUED, count, 7));
         var results = tasks.stream().map( row -> {
             var taskId = UUID.randomUUID().toString();
