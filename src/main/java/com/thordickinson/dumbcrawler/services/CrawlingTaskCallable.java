@@ -11,6 +11,10 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -23,11 +27,14 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
     private static final Logger logger = LoggerFactory.getLogger(CrawlingTaskCallable.class);
     private final ContentRenderer htmlRenderer;
     private final ContentValidator contentValidator;
+    private final Path sessionFolder;
 
-    public CrawlingTaskCallable(CrawlingTask task, ContentRenderer renderer, ContentValidator contentValidator) {
+    public CrawlingTaskCallable(CrawlingTask task, ContentRenderer renderer,
+                                ContentValidator contentValidator, Path sessionFolder) {
         this.task = task;
         this.contentValidator = contentValidator;
         this.htmlRenderer = renderer;
+        this.sessionFolder = sessionFolder;
     }
 
     @Override
@@ -40,7 +47,7 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
         }
         try {
             var document = parseHtml(html);
-            contentValidator.validatePageContent(document);
+            contentValidator.validatePageContent(task, document);
             var links = getLinks(document);
             if (links.size() > 300) {
                 logger.warn("Page {} has more than 300 links", task.url());
@@ -48,7 +55,7 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
             long endedAt = System.currentTimeMillis();
             return new CrawlingResult(task, html, links, startedAt, endedAt);
         }catch(CrawlingException ex){
-            writeDebugFile(html);
+            writeDebugFile(ex, html);
             throw ex;
         }
     }
@@ -61,7 +68,17 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
         }
     }
 
-    private void writeDebugFile(String content){
+    private void writeDebugFile(CrawlingException ex, String content){
+        String errorCode = ex.getErrorCode();
+        String fileName = ex.getTask().taskId() + ".html";
+        var path = sessionFolder.resolve("debug").resolve(errorCode).resolve(fileName);
+        try {
+            path.getParent().toFile().mkdirs();
+            Files.writeString(path, content);
+            logger.warn("Debug file stored at {}", path);
+        }catch (IOException ioex){
+            logger.error("Error writing file", ioex);
+        }
     }
 
     private Set<String> getLinks(Document document) { 

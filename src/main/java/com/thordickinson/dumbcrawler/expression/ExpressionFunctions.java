@@ -37,6 +37,12 @@ public class ExpressionFunctions implements ExpressionConstants{
         return value.matches(regex) ? TRUE : FALSE;
     }
 
+    /**
+     * Verifica si la url es un archivo para descargar.
+     * @param funciton
+     * @param stack
+     * @return
+     */
     public Value _isResource(Token funciton, Stack<Token> stack) {
         String path = ((Token) stack.pop()).asString();
         if (path == null)

@@ -88,7 +88,7 @@ public class DumbCrawler implements Runnable {
 
     private void handleCrawlingException(CrawlingException ex){
         logger.warn("Error crawling page: {}", ex.getTask().taskId());
-        sessionContext.increaseCounter(ex.getErrorCode());
+        sessionContext.increaseCounter("ERROR_" + ex.getErrorCode());
         urlStore.markTasAsFailed(ex.getTask(), ex);
     }
 
@@ -109,7 +109,7 @@ public class DumbCrawler implements Runnable {
                 handleCrawlingException((CrawlingException) exception);
                 return;
             }
-            sessionContext.increaseCounter("EXCEPTION_" + exception.getClass().getSimpleName());
+            sessionContext.increaseCounter("ERROR_" + exception.getClass().getSimpleName());
             urlStore.markTasAsFailed(wrapper.task(), ex);
         }
     }
@@ -206,6 +206,9 @@ public class DumbCrawler implements Runnable {
         for (var entry : counters.entrySet()) {
             message.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
         }
+        if(ctx.isStopRequested()){
+            message.append("STOP Requested: waiting for remaining tasks");
+        }
         logger.info(message.toString());
     }
 
@@ -241,7 +244,7 @@ public class DumbCrawler implements Runnable {
                 logger.info("Removing {} tasks from queue", queue.size());
                 queue.clear();
             }
-            logger.info("Stop requested: Waiting for {} active tasks", active);
+            logger.debug("Stop requested: Waiting for {} active tasks", active);
             if (active == 0) {
                 this.stopped = true;
             }
@@ -262,7 +265,8 @@ public class DumbCrawler implements Runnable {
             stop();
             return;
         }
-        var newTasks = urls.stream().map(t -> new CrawlingTaskCallable(t, contentRenderer, contentValidator))
+        var newTasks = urls.stream().map(t -> new CrawlingTaskCallable(t, contentRenderer,
+                        contentValidator, sessionContext.getSessionDir()))
                 .map(c -> new TaskWrapper(c.getTask(), executor.submit(c))).toList();
         runningTasks.addAll(newTasks);
     }

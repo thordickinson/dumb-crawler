@@ -26,11 +26,11 @@ public class URLExpressionEvaluator {
         return evaluateAs(expectedType, expression, url, Optional.empty());
     }
 
-    public static Optional<Map<String, Object>> getVariablesfromUrl(String url) {
-        return getVariablesfromUrl(url, Optional.empty());
+    public static Optional<Map<String, Object>> getVariablesFromUrl(String url) {
+        return getVariablesFromUrl(url, Optional.empty());
     }
 
-    public static Optional<Map<String, Object>> getVariablesfromUrl(String url, Optional<String> contentType) {
+    public static Optional<Map<String, Object>> getVariablesFromUrl(String url, Optional<String> contentType) {
         var parsed = HttpUrl.parse(url);
         if (parsed == null) {
             logger.warn("Error parsing url: {}", url);
@@ -52,7 +52,7 @@ public class URLExpressionEvaluator {
     public <T> Optional<T> evaluateAs(Class<T> expectedType, String expression, String url, Optional<String> contentType) {
         if (StringUtils.isBlank(expression) || StringUtils.isBlank(url)) return Optional.empty();
         try {
-            return getVariablesfromUrl(url, contentType).flatMap(variables ->
+            return getVariablesFromUrl(url, contentType).flatMap(variables ->
                     ThreadLocalEvaluator.getThreadEvaluator().evaluateAs(expectedType, expression, variables)
             );
         } catch (IllegalArgumentException ex) {

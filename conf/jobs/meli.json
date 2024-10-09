@@ -22,17 +22,13 @@
   "renderer": {
     "proxify": ["all"]
   },
-  "validation": {
-    "sleepTime": 5000,
-    "items": {
-      "expression": "containsElement(document, 'div.ui-pdp-specs')",
-      "maxRetries": 5
-    }
+  "validationSelectors": {
+    "item": "div#price"
   },
   "storage": {
     "includedTags": ["item"]
   },
   "taskKiller": {
-    "timeout": "5m"
+    "timeout": "5mvb"
   }
 }
