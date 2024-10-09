@@ -3,7 +3,10 @@ package com.thordickinson.dumbcrawler.api;
 import com.jsoniter.JsonIterator;
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.util.JsonUtil;
+import com.thordickinson.dumbcrawler.util.SQLiteConnection;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -35,6 +38,9 @@ public class CrawlingSessionContext {
     private final long startedAt = System.currentTimeMillis();
     private final Map<String, Serializable> counters = new HashMap<>();
     private final Map<String, Serializable> variables = new HashMap<>();
+    @Getter
+    private final SQLiteConnection sqLiteConnection;
+    private final Logger logger = LoggerFactory.getLogger(CrawlingSessionContext.class);
 
 
     public CrawlingSessionContext(String jobId, String sessionId, Path jobOutputDir) {
@@ -46,13 +52,29 @@ public class CrawlingSessionContext {
 
         this.sessionId = sessionId;
         sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId).resolve("crawl");
-        dataPath = jobOutputDir.resolve("data");
         if(!sessionDir.toFile().isDirectory() && !sessionDir.toFile().mkdirs()){
             throw new RuntimeException("Unable to create output dirs");
         }
+        dataPath = jobOutputDir.resolve("data");
+        sqLiteConnection = new SQLiteConnection(sessionDir);
+        initializeTables();
     }
 
+    private void initializeTables(){
+        sqLiteConnection.addTable("counters", Map.of("counter_name", "TEXT PRIMARY KEY", "counter_value", "INT DEFAULT 0"));
+        var counters = sqLiteConnection.query("SELECT counter_name, counter_value from counters");
+        counters.forEach(c -> {
+            this.counters.put(String.valueOf(c.get(0)), (int) c.get(1));
+        });
+    }
 
+    private void saveCounters(){
+        for(var entry : counters.entrySet()){
+            sqLiteConnection.update("INSERT INTO counters (counter_name, counter_value) VALUES (?, ?) " +
+                    "ON CONFLICT(counter_name) DO UPDATE SET counter_value = ?", entry.getKey(),
+                    entry.getValue(), entry.getValue());
+        }
+    }
 
     public Set<String> getSeeds() {
         return JsonUtil.get(jobConfiguration, "seeds").map(Any::asList).map(l -> l.stream().map(Any::toString)
@@ -61,6 +83,10 @@ public class CrawlingSessionContext {
 
     public int getThreadCount() {
         return JsonUtil.get(jobConfiguration, "threadCount").map(Any::toInt).orElseGet(() -> 3);
+    }
+
+    public void loopCompleted(){
+        saveCounters();
     }
 
     public Optional<Any> getConfig(String path) {
@@ -116,5 +142,13 @@ public class CrawlingSessionContext {
 
     public void stopCrawling() {
         this.stopRequested = true;
+    }
+
+    public void destroy(){
+        try {
+            sqLiteConnection.close();
+        } catch (Exception ex) {
+            logger.warn("Error closing connection", ex);
+        }
     }
 }

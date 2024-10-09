@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -76,6 +75,7 @@ public class DumbCrawler implements Runnable {
         processCompletedTasks(sessionContext);
         scheduleNewTasks(sessionContext);
         printCounters(sessionContext);
+        sessionContext.loopCompleted();
         if (taskKiller.shouldStop(sessionContext)) {
             stop();
         } else {
@@ -147,12 +147,18 @@ public class DumbCrawler implements Runnable {
 
     private void terminate() {
         logger.info("Ending crawling session");
-        executor.shutdownNow();
+        stopComponents();
+        sessionContext.destroy();
+        awaitTermination();
+        appContext.close();
     }
 
     private void awaitTermination() {
+        if(executor == null) return;
         try {
-            executor.awaitTermination(10, TimeUnit.MINUTES);
+            if(!executor.awaitTermination(1, TimeUnit.MINUTES)){
+                executor.shutdownNow();
+            }
         } catch (InterruptedException ex) {
             logger.error("Error while waiting for all the tasks to complete", ex);
         }
@@ -206,6 +212,9 @@ public class DumbCrawler implements Runnable {
                 sessions.sort(Comparator.comparing(File::getName));
                 var reversed = sessions.reversed();
                 for(var session : reversed){
+                    if(session.getName().startsWith(".")){
+                        continue;
+                    }
                     var terminationFile = session.toPath().resolve(TERMINATION_MARKER_FILE);
                     if(!terminationFile.toFile().exists()){
                         logger.info("Resuming session: {}", session.getName());
@@ -262,11 +271,6 @@ public class DumbCrawler implements Runnable {
         if (sessionContext != null) {
             sessionContext.stopCrawling();
         }
-        if (executor != null) {
-            awaitTermination();
-        }
-        stopComponents();
-        appContext.close();
     }
 
     private void stopComponents() {

@@ -5,7 +5,6 @@ import com.thordickinson.dumbcrawler.api.CrawlingTask;
 import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.util.JDBCUtil;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,6 @@ public class URLStore {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(URLStore.class);
-    private final SQLiteConnection connection;
     private final CrawlingSessionContext context;
     private int queued = 0;
     private int processed = 0;
@@ -31,13 +29,16 @@ public class URLStore {
 
     public URLStore(CrawlingSessionContext context) {
         this.context = context;
-        connection = new SQLiteConnection(context.getSessionDir());
         initialize();
+    }
+
+    private SQLiteConnection getConnection(){
+        return this.context.getSqLiteConnection();
     }
 
     private void loadCounters() {
         var sql = "select status, count(*) as count from links group by status";
-        var counters = connection.query(sql);
+        var counters = getConnection().query(sql);
         for (var counter : counters) {
             var status = (int) counter.get(0);
             switch (status) {
@@ -49,7 +50,7 @@ public class URLStore {
     }
 
     private void updateOrphans() {
-        var orphans = connection.update("UPDATE links SET status = ?, taken_at = NULL WHERE status = ?", Status.QUEUED, Status.PROCESSING);
+        var orphans = getConnection().update("UPDATE links SET status = ?, taken_at = NULL WHERE status = ?", Status.QUEUED, Status.PROCESSING);
         if (orphans > 0)
             logger.warn("{} orphan urls were updated", orphans);
     }
@@ -60,13 +61,13 @@ public class URLStore {
             return;
         }
         logger.warn("Marking all links for refetch");
-        connection.update("UPDATE links SET status = 0"); // This will force to revisit all the pages
+        getConnection().update("UPDATE links SET status = 0"); // This will force to revisit all the pages
         logger.warn("fetch update completed");
     }
 
     private void initialize() {
         String check = "SELECT name FROM sqlite_master WHERE type='table' AND name='links'";
-        var checkResult = connection.singleResult(String.class, check);
+        var checkResult = getConnection().singleResult(String.class, check);
         if (checkResult.isPresent()) {
             logger.info("Schema is initialized");
             updateOrphans();
@@ -76,7 +77,7 @@ public class URLStore {
         }
 
         logger.info("Initializing schema");
-        String table = "CREATE TABLE links (" +
+        String table = "CREATE TABLE IF NOT EXISTS links (" +
                 "hash TEXT PRIMARY KEY, " +
                 "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 "url TEXT, " +
@@ -88,10 +89,10 @@ public class URLStore {
                 "error TEXT, " +
                 "attempt_count INTEGER DEFAULT 0 " +
                 ") WITHOUT ROWID";
-        connection.update(table);
-        connection.update("CREATE INDEX url_index ON links(url)");
-        connection.update("CREATE INDEX status_index ON links(status)");
-        connection.update("CREATE INDEX priority_index ON links(priority)");
+        getConnection().update(table);
+        getConnection().update("CREATE INDEX url_index ON links(url)");
+        getConnection().update("CREATE INDEX status_index ON links(status)");
+        getConnection().update("CREATE INDEX priority_index ON links(priority)");
         logger.info("Schema creation complete");
     }
 
@@ -124,7 +125,7 @@ public class URLStore {
         String placeholders = JDBCUtil.generateParams(tasks.size());
         var params = tasks.stream().map(CrawlingTask::urlId).toList();
         var exists = "SELECT hash FROM links WHERE hash in %s".formatted(placeholders);
-        var existent = connection.query(exists, params)
+        var existent = getConnection().query(exists, params)
                 .stream().map(List::getFirst).map(String::valueOf)
                 .collect(Collectors.toSet());
 
@@ -137,7 +138,7 @@ public class URLStore {
 
 
         var objects = toInsert.values().stream().map(e -> List.<Object>of(e.urlId(), e.url(), String.join(",", e.tags()), e.priority())).toList();
-        connection.insertMany("links", List.of("hash", "url", "tags", "priority"), objects);
+        getConnection().insertMany("links", List.of("hash", "url", "tags", "priority"), objects);
 
         context.increaseCounter("DISCOVERED_URLS", toInsert.size());
         queued += toInsert.size();
@@ -168,7 +169,7 @@ public class URLStore {
     private void markProcessed(CrawlingTask task, int status, String error){
         var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ?, attempt_count = ? WHERE hash = ?";
         var attempt = task.attempt() + 1;
-        var updated = connection.update(sql, status, error, attempt, task.urlId());
+        var updated = getConnection().update(sql, status, error, attempt, task.urlId());
         if(updated != 1){
             logger.warn("Unexpected update count {}", updated);
         }
@@ -176,7 +177,7 @@ public class URLStore {
 
     public List<CrawlingTask> getUnvisited(int count) {
         var sql = "SELECT url, hash, tags, priority, attempt_count FROM links WHERE status = ? AND attempt_count < ? ORDER BY priority DESC, attempt_count LIMIT ?";
-        var tasks = connection.query(sql, List.of(Status.QUEUED, count, 7));
+        var tasks = getConnection().query(sql, List.of(Status.QUEUED, count, 7));
         var results = tasks.stream().map( row -> {
             var taskId = UUID.randomUUID().toString();
             var hash = String.valueOf(row.get(1));
@@ -191,24 +192,12 @@ public class URLStore {
         params.add(Status.PROCESSING);
         params.addAll(results.stream().map(CrawlingTask::urlId).toList());
         var update = "UPDATE links SET status = ?, taken_at = CURRENT_TIMESTAMP WHERE hash IN %s".formatted(JDBCUtil.generateParams(results.size()));
-        var updated = connection.update(update, params);
+        var updated = getConnection().update(update, params);
         if(updated != results.size()){
             logger.warn("Cannot mark all the urls as taken");
         }
         logger.debug("Returned {} urls to process", updated);
         return results;
-    }
-
-    @PreDestroy
-    void destroy() {
-        if (connection != null) {
-            try {
-                logger.debug("Closing connection");
-                connection.close();
-            } catch (Exception ex) {
-                logger.warn("Error closing connection", ex);
-            }
-        }
     }
 }
 

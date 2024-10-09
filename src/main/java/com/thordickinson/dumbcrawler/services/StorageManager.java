@@ -54,7 +54,6 @@ public class StorageManager extends AbstractCrawlingComponent {
             return;
         }
 
-        var urlHash = result.task().urlId();
         var fileToUpdate = getFileLocation(result.task());
         sessionContext.increaseCounter("SAVED_PAGES");
         var url = result.task().url();
@@ -170,5 +169,10 @@ public class StorageManager extends AbstractCrawlingComponent {
         allowedTags = context.getConfig("storage.includedTags")
                 .map(Any::asList).map(l -> (Set<String>) new HashSet<String>(l.stream().map(Object::toString).toList()))
                 .orElseGet(Collections::emptySet);
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
     }
 }
