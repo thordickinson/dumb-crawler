@@ -12,7 +12,7 @@ public class RocketscrapeRenderer extends SimpleHttpRenderer {
         if(apiKey == null){
             apiKey = System.getenv("ROCKETSCRAPE_API_KEY");
         }
-        if(apiKey.isEmpty() || apiKey.length() < 10){
+        if(apiKey == null || apiKey.isEmpty() || apiKey.length() < 10){
             throw new IllegalStateException("Please provide a valid ROCKETSCRAPE_API_KEY environment variable!");
         }
         return apiKey;

@@ -1,13 +1,12 @@
 {
   "seeds": [
-    "https://motos.mercadolibre.com.co/"
+    "https://www.fincaraiz.com.co"
   ],
-  "idExtractorPattern": ".*\/(?<id>MCO-[0-9]{6,}).*",
+  "idExtractorPattern": "\"^https?:\\/\\/www\\.fincaraiz\\.com\\.co(\\/proyectos)?\\/[\\w+|-]+\\/(?<id>\\d{5,})$\"gm",
   "threadCount": 4,
   "tagger": {
-    "internal": "matches(host, 'motos?.mercadolibre.com.co')",
-    "item": "matches(path, '^\/(MCO|mco)-[0-9]+.*')",
-    "listing": "matches(host, 'motos\\.mercadolibre\\.com\\.co') and not isResource(path)"
+    "internal": "matches(host, '([a-z]*.)?fincaraiz\\.com\\.co')",
+    "item": "matches(path, '(\\/proyectos)?\\/[\\w+|-]+\\/(?<id>\\d{5,})$')"
   },
   "linkFilter": {
     "whitelist": ["internal"],
@@ -23,7 +22,7 @@
     "proxify": ["all"]
   },
   "validationSelectors": {
-    "item": "div#price"
+    "item": "h1.property-title"
   },
   "storage": {
     "includedTags": ["item"]

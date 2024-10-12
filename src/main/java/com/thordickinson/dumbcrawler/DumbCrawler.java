@@ -215,7 +215,7 @@ public class DumbCrawler implements Runnable {
                     if(session.getName().startsWith(".")){
                         continue;
                     }
-                    var terminationFile = session.toPath().resolve(TERMINATION_MARKER_FILE);
+                    var terminationFile = session.toPath().resolve("crawl").resolve(TERMINATION_MARKER_FILE);
                     if(!terminationFile.toFile().exists()){
                         logger.info("Resuming session: {}", session.getName());
                         return session.getName();

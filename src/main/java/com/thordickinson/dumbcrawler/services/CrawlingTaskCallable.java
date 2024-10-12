@@ -48,6 +48,7 @@ public class CrawlingTaskCallable implements Callable<CrawlingResult> {
         }
         try {
             var document = parseHtml(html);
+            document.setBaseUri(task.url());
             contentValidator.validatePageContent(task, document);
             var links = getLinks(document);
             if (links.size() > 300) {

@@ -28,6 +28,6 @@
     "includedTags": ["item"]
   },
   "taskKiller": {
-    "timeout": "5mvb"
+    "timeout": "5m"
   }
 }
