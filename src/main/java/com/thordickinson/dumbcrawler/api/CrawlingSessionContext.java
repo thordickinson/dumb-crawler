@@ -8,20 +8,24 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class CrawlingSessionContext {
 
     @Getter
-    private final Path jobsConfDir;
-    @Getter
     private final String jobId;
+    @Getter
+    private final boolean isNewSession;
     @Getter
     private final String sessionId;
     @Getter
@@ -30,6 +34,8 @@ public class CrawlingSessionContext {
     private final Path sessionDir;
     @Getter
     private final Path jobOutputDir;
+    @Getter
+    private final Path terminationFilePath;
     @Getter
     private boolean stopRequested = false;
     @Getter
@@ -41,17 +47,23 @@ public class CrawlingSessionContext {
     @Getter
     private final SQLiteConnection sqLiteConnection;
     private final Logger logger = LoggerFactory.getLogger(CrawlingSessionContext.class);
+    private static final SimpleDateFormat DATETIME_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss");
+    private static final String TERMINATION_MARKER_FILE = "terminated.marker";
 
 
-    public CrawlingSessionContext(String jobId, String sessionId, Path jobOutputDir) {
+
+    public CrawlingSessionContext(String jobId) {
         this.jobId = jobId;
-
-        jobsConfDir = Path.of("./conf/jobs");
-        jobConfiguration = loadJob(jobsConfDir);
-        this.jobOutputDir = jobOutputDir;
-
-        this.sessionId = sessionId;
+        final var home = System.getProperty("user.home");
+        this.jobOutputDir = Paths.get(home,".apricoot", "crawler", jobId);
+        final var sessionIdOptional = getLatestSession(jobOutputDir);
+        this.isNewSession = sessionIdOptional.isEmpty();
+        this.sessionId = sessionIdOptional.orElseGet(() -> this.createSessionId());
         sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId).resolve("crawl");
+        this.terminationFilePath = sessionDir.resolve(TERMINATION_MARKER_FILE);
+
+        jobConfiguration = loadJob(this.jobOutputDir);
+
         if(!sessionDir.toFile().isDirectory() && !sessionDir.toFile().mkdirs()){
             throw new RuntimeException("Unable to create output dirs");
         }
@@ -106,7 +118,7 @@ public class CrawlingSessionContext {
     }
 
     private Any loadJob(Path dataDir) {
-        var configFile = dataDir.resolve(jobId + ".json");
+        var configFile = dataDir.resolve("config.json");
         try {
             return JsonIterator.deserialize(Files.readAllBytes(configFile));
         } catch (IOException ex) {
@@ -149,6 +161,46 @@ public class CrawlingSessionContext {
             sqLiteConnection.close();
         } catch (Exception ex) {
             logger.warn("Error closing connection", ex);
+        }
+    }
+
+    private Optional<String> getLatestSession(Path outputDir){
+        var sessionsDir = outputDir.resolve("sessions").toFile();
+        if(sessionsDir.isDirectory()){
+            var sessionDirs = sessionsDir.listFiles();
+            if(sessionDirs != null){
+                var sessions = new ArrayList<>(Arrays.asList(sessionDirs));
+                sessions.sort(Comparator.comparing(File::getName));
+                var reversed = sessions.reversed();
+                for(var session : reversed){
+                    if(session.getName().startsWith(".")){
+                        continue;
+                    }
+                    var terminationFile = session.toPath().resolve(TERMINATION_MARKER_FILE);
+                    if(!terminationFile.toFile().exists()){
+                        logger.info("Resuming session: {}", session.getName());
+                        return Optional.of(session.getName());
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private String createSessionId(){
+        var sessionId = DATETIME_FORMAT.format(new Date());
+        logger.info("Creating new session: {}", sessionId);
+        return sessionId;
+    }
+
+
+    public void end(){
+        try {
+            String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+            Files.write(this.terminationFilePath, ("{\"timestamp\": \"" + timestamp + "\" }").getBytes("utf-8"));
+            logger.info("Session end marker file was created");
+        } catch (IOException e) {
+            logger.error("Unable to mark session as terminated", e);
         }
     }
 }
