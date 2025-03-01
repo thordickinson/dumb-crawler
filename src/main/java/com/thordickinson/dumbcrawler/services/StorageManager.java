@@ -67,7 +67,7 @@ public class StorageManager extends AbstractCrawlingComponent {
 
     private void addToIndex(CrawlingTask task) {
         //Adds the page + the currentFile to our index [do not implement this]
-        var path = getContext().getDataPath().relativize(currentFile).toString();
+        var path = getContext().getCrawlDir().relativize(currentFile).toString();
         dbConnection.update("INSERT INTO url_index (url_hash, file_path) VALUES (?, ?)", List.of(task.urlId(), path));
     }
 
@@ -143,7 +143,7 @@ public class StorageManager extends AbstractCrawlingComponent {
     private Path createNewWarcFile() throws IOException {
         // Generate a unique filename based on the timestamp
         String fileName = "crawl_" + Instant.now().toEpochMilli() + ".warc";
-        Path newFilePath = getContext().getDataPath().resolve(fileName);
+        Path newFilePath = getContext().getCrawlDir().resolve(fileName);
 
         // Ensure the directory exists
         Files.createDirectories(newFilePath.getParent());
@@ -155,7 +155,7 @@ public class StorageManager extends AbstractCrawlingComponent {
     }
 
     private void initializeDB(CrawlingSessionContext context){
-        dbConnection = new SQLiteConnection(context.getDataPath(), "file_index");
+        dbConnection = new SQLiteConnection(context.getSessionDir(), "file_index");
         dbConnection.addTable("url_index", Map.of("url_hash", "TEXT NOT NULL PRIMARY KEY", "file_path", "TEXT NOT NULL"), false);
     }
 

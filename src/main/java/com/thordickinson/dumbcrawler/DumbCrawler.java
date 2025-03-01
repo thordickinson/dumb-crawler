@@ -177,7 +177,7 @@ public class DumbCrawler implements Runnable {
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
         seeds = sessionContext.getSeeds();
-
+        logger.info("Adding seeds: {}", seeds);
         // TODO: once this is started we should load counters in the context.
         urlStore = new URLStore(sessionContext);
         Thread loopThread = new Thread(this, "main-thread");

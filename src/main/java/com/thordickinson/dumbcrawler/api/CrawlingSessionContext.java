@@ -2,7 +2,9 @@ package com.thordickinson.dumbcrawler.api;
 
 import com.jsoniter.JsonIterator;
 import com.jsoniter.any.Any;
+import com.thordickinson.dumbcrawler.DumbCrawler;
 import com.thordickinson.dumbcrawler.util.JsonUtil;
+import com.thordickinson.dumbcrawler.util.LoggerConfig;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -33,13 +35,13 @@ public class CrawlingSessionContext {
     @Getter
     private final Path sessionDir;
     @Getter
+    private final Path crawlDir;
+    @Getter
     private final Path jobOutputDir;
     @Getter
     private final Path terminationFilePath;
     @Getter
     private boolean stopRequested = false;
-    @Getter
-    private final Path dataPath;
     @Getter
     private final long startedAt = System.currentTimeMillis();
     private final Map<String, Serializable> counters = new HashMap<>();
@@ -59,7 +61,11 @@ public class CrawlingSessionContext {
         final var sessionIdOptional = getLatestSession(jobOutputDir);
         this.isNewSession = sessionIdOptional.isEmpty();
         this.sessionId = sessionIdOptional.orElseGet(() -> this.createSessionId());
-        sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId).resolve("crawl");
+        this.sessionDir = jobOutputDir.resolve("sessions").resolve(sessionId);
+        LoggerConfig.addFileAppender(this.sessionDir, CrawlingSessionContext.class, DumbCrawler.class);
+
+        this.crawlDir = this.sessionDir.resolve("crawl");
+
         this.terminationFilePath = sessionDir.resolve(TERMINATION_MARKER_FILE);
 
         jobConfiguration = loadJob(this.jobOutputDir);
@@ -67,7 +73,6 @@ public class CrawlingSessionContext {
         if(!sessionDir.toFile().isDirectory() && !sessionDir.toFile().mkdirs()){
             throw new RuntimeException("Unable to create output dirs");
         }
-        dataPath = jobOutputDir.resolve("data");
         sqLiteConnection = new SQLiteConnection(sessionDir);
         initializeTables();
     }
