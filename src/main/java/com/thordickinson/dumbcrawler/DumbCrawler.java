@@ -4,6 +4,7 @@ import com.thordickinson.dumbcrawler.api.*;
 import com.thordickinson.dumbcrawler.exceptions.CrawlingException;
 import com.thordickinson.dumbcrawler.services.*;
 import com.thordickinson.dumbcrawler.services.renderer.ContentRenderer;
+import com.thordickinson.dumbcrawler.services.storage.GZipStorageManager;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,7 @@ public class DumbCrawler implements Runnable {
     @Autowired
     private UrlTagger urlTagger;
     @Autowired
-    private StorageManager storageManager;
+    private GZipStorageManager storageManager;
     @Autowired
     private ContentRenderer contentRenderer;
     @Autowired

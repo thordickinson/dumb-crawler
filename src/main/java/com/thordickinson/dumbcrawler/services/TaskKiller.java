@@ -2,6 +2,7 @@ package com.thordickinson.dumbcrawler.services;
 
 import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
+import com.thordickinson.dumbcrawler.services.storage.WarcStorageManager;
 import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.util.Misc;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ public class TaskKiller extends AbstractCrawlingComponent {
         if(sessionContext.isStopRequested()){
             return true;
         }
-        var lastNewPageSavedAt = sessionContext.getVariable(StorageManager.LAST_NEW_PAGE_SAVED_AT_KEY, System.currentTimeMillis());
+        var lastNewPageSavedAt = sessionContext.getVariable(WarcStorageManager.LAST_NEW_PAGE_SAVED_AT_KEY, System.currentTimeMillis());
         if(System.currentTimeMillis() - lastNewPageSavedAt > timeout) {
             logger.warn("Stopping crawler after no new pages were saved: {}ms", timeout);
             return true;

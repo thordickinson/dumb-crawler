@@ -1,10 +1,8 @@
-package com.thordickinson.dumbcrawler.services;
+package com.thordickinson.dumbcrawler.services.storage;
 
-import com.jsoniter.any.Any;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
 import com.thordickinson.dumbcrawler.api.CrawlingTask;
-import com.thordickinson.dumbcrawler.util.AbstractCrawlingComponent;
 import com.thordickinson.dumbcrawler.util.SQLiteConnection;
 import org.netpreserve.jwarc.MediaType;
 import org.netpreserve.jwarc.WarcResponse;
@@ -23,7 +21,7 @@ import java.util.*;
 
 
 @Service
-public class StorageManager extends AbstractCrawlingComponent {
+public class WarcStorageManager extends AbstractStorageManager {
 
 
     public static final String LAST_NEW_PAGE_SAVED_AT_KEY = "LAST_NEW_PAGE_SAVED_AT";
@@ -31,32 +29,14 @@ public class StorageManager extends AbstractCrawlingComponent {
     private Path currentFile;
     private long maxFileSize = 1024 * 1024 * 50; // 50 MB max file size
     private SQLiteConnection dbConnection;
-    private Set<String> allowedTags = Collections.emptySet();
 
-    public StorageManager() {
-        super("storage");
+    public WarcStorageManager() {
+        super("warcStorage");
     }
 
 
-    private boolean shouldStore(CrawlingResult result, CrawlingSessionContext sessionContext){
-        for(var tag : result.task().tags()){
-            if(allowedTags.contains(tag)){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void storeResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
-        if(!shouldStore(result, sessionContext)){
-            logger.debug("Ignoring url: {}", result.task().url());
-            sessionContext.increaseCounter("UNSAVED_PAGES");
-            return;
-        }
-
+    protected void doStoreResult(CrawlingResult result, CrawlingSessionContext sessionContext) {
         var fileToUpdate = getFileLocation(result.task());
-        sessionContext.increaseCounter("SAVED_PAGES");
-        var url = result.task().url();
         var html = result.content();
         if (fileToUpdate.isPresent()) {
             updateWarcFile(fileToUpdate.get(), result.task(), html, sessionContext);
@@ -166,9 +146,7 @@ public class StorageManager extends AbstractCrawlingComponent {
         int maxFileSizeMb = context.getIntConf("storage.maxFileSize", 50);
         maxFileSize = 1024L * 1024 * maxFileSizeMb;
         initializeDB(context);
-        allowedTags = context.getConfig("storage.includedTags")
-                .map(Any::asList).map(l -> (Set<String>) new HashSet<String>(l.stream().map(Object::toString).toList()))
-                .orElseGet(Collections::emptySet);
+        super.loadConfigurations(context);
     }
 
     @Override
