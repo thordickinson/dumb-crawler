@@ -21,7 +21,7 @@ docker run -d \
   --name "$container_name" \
   -e ROCKETSCRAPE_API_KEY="${ROCKETSCRAPE_API_KEY}" \
   -v "$HOME/.apricoot:$HOME/.apricoot" \
-  apricoot/crawler:latest -- --jobId="$task_name"
+  apricoot/crawler:latest --jobId="$task_name"
 
 # Mostrar logs del contenedor en tiempo real
 docker logs -f "$container_name"
