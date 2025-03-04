@@ -6,6 +6,6 @@ docker run -d \
 --user $(id -u):$(id -g) \
 --name $container_name \
 -e ROCKETSCRAPE_API_KEY=${ROCKETSCRAPE_API_KEY} \
-apricoot/crawler:latest "$task_name"
+apricoot/crawler:latest -- --jobId=$task_name
 
 docker logs -f $container_name

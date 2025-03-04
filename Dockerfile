@@ -24,4 +24,4 @@ WORKDIR /app
 COPY --from=build /app/target/crawler.jar crawler.jar
 
 # Comando por defecto para ejecutar la aplicación
-CMD ["java", "-jar", "crawler.jar"]
+ENTRYPOINT ["java", "-jar", "crawler.jar"]
