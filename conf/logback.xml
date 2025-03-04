@@ -13,4 +13,5 @@
     <logger name="com.thordickinson.dumbcrawler.services.renderer.ContentRenderer" level="INFO" />
     <logger name="com.thordickinson.dumbcrawler.services.storage.WarcStorageManager" level="WARN" />
     <logger name="com.thordickinson.dumbcrawler.services.CrawlingTaskCallable" level="WARN" />
+    <logger name="com.thordickinson.dumbcrawler.api.URLHasher" level="DEBUG" />
 </configuration>

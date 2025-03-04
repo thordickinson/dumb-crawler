@@ -17,6 +17,15 @@ public class Misc {
     private static final Logger logger = LoggerFactory.getLogger(Misc.class);
     private static final Pattern periodPattern = Pattern.compile("([0-9]+)([smhdw])");
 
+
+    public static String getUserHome() {
+        final var home = System.getenv("CRAWLER_USER_HOME");
+        if( home != null ){
+            return home;
+        }
+        return System.getProperty("user.home");
+    }
+
     public static Optional<URI> parseURI(String uri) {
         try {
             var parsed = URI.create(uri);

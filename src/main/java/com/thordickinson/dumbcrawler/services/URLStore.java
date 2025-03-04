@@ -26,9 +26,11 @@ public class URLStore {
     private int queued = 0;
     private int processed = 0;
     private int failed = 0;
+    private int maxAttemptCount;
 
     public URLStore(CrawlingSessionContext context) {
         this.context = context;
+        maxAttemptCount = context.getMaxAttemptCount();
         initialize();
     }
 
@@ -169,6 +171,10 @@ public class URLStore {
     private void markProcessed(CrawlingTask task, int status, String error){
         var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ?, attempt_count = ? WHERE hash = ?";
         var attempt = task.attempt() + 1;
+        if(attempt >= maxAttemptCount){
+            context.increaseCounter("MAX_ATTEMPT_COUNT_REACHED");
+            logger.warn("Max attempt count reached for url: {}", task.url());
+        }
         var updated = getConnection().update(sql, status, error, attempt, task.urlId());
         if(updated != 1){
             logger.warn("Unexpected update count {}", updated);
@@ -177,7 +183,7 @@ public class URLStore {
 
     public List<CrawlingTask> getUnvisited(int count) {
         var sql = "SELECT url, hash, tags, priority, attempt_count FROM links WHERE status = ? AND attempt_count < ? ORDER BY priority DESC, attempt_count LIMIT ?";
-        var tasks = getConnection().query(sql, List.of(Status.QUEUED, count, 7));
+        var tasks = getConnection().query(sql, List.of(Status.QUEUED, maxAttemptCount, count));
         var results = tasks.stream().map( row -> {
             var taskId = UUID.randomUUID().toString();
             var hash = String.valueOf(row.get(1));

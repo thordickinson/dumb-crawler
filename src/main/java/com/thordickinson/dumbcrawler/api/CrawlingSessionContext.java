@@ -22,6 +22,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.thordickinson.dumbcrawler.util.Misc.getUserHome;
+
 public class CrawlingSessionContext {
 
     @Getter
@@ -57,10 +59,7 @@ public class CrawlingSessionContext {
     public CrawlingSessionContext(String jobId) {
         this.jobId = jobId;
 
-        var home = System.getenv("CRAWLER_USER_HOME");
-        if( home == null ){
-            home = System.getProperty("user.home");
-        }
+        final var home = getUserHome();
 
         this.jobOutputDir = Paths.get(home,".apricoot", "crawler", jobId);
         final var sessionIdOptional = getLatestSession(jobOutputDir);
@@ -105,6 +104,10 @@ public class CrawlingSessionContext {
 
     public int getThreadCount() {
         return JsonUtil.get(jobConfiguration, "threadCount").map(Any::toInt).orElseGet(() -> 3);
+    }
+
+    public int getMaxAttemptCount() {
+        return JsonUtil.get(jobConfiguration, "maxAttemptCount").map(Any::toInt).orElseGet(() -> 5);
     }
 
     public void loopCompleted(){

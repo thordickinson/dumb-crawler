@@ -32,9 +32,12 @@ public class URLHasher extends AbstractCrawlingComponent {
         if(pattern != null){
             final var matcher = pattern.matcher(url);
             if(matcher.matches()){
-                return matcher.group("id");
+                final var hash = matcher.group("id");
+                logger.debug("Getting url has from {} -> {}", hash, url);
+                return hash;
             }
         }
+        logger.debug("Not able to detect hash for url, returning md5: {}", url);
         return DigestUtils.md5Hex(url);
     }
     
