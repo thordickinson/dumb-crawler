@@ -1,13 +1,27 @@
 #!/bin/bash
+set -e  # Detiene el script si ocurre un error
+
+if [ -z "$1" ]; then
+  echo "Uso: $0 <task_name>"
+  exit 1
+fi
+
 task_name="$1"
 container_name="crawler_$task_name"
 
-docker rm -fv $container_name
+if docker ps -a --format '{{.Names}}' | grep -q "^$container_name$"; then
+  echo "Eliminando contenedor existente: $container_name"
+  docker rm -fv "$container_name"
+fi
+
+echo "Iniciando contenedor: $container_name"
 
 docker run -d \
---user $(id -u):$(id -g) \
---name $container_name \
--e ROCKETSCRAPE_API_KEY=${ROCKETSCRAPE_API_KEY} \
-apricoot/crawler:latest -- --jobId=$task_name
+  --user "$(id -u):$(id -g)" \
+  --name "$container_name" \
+  -e ROCKETSCRAPE_API_KEY="${ROCKETSCRAPE_API_KEY}" \
+  -v "$HOME/.apricoot:$HOME/.apricoot" \
+  apricoot/crawler:latest -- --jobId="$task_name"
 
-docker logs -f $container_name
+# Mostrar logs del contenedor en tiempo real
+docker logs -f "$container_name"
