@@ -1,9 +1,11 @@
 #!/bin/bash
 task_name = "$1"
+container_name = "crawler_$task_name"
 
 docker run -d \
 --user $(id -u):$(id -g) \
---name "crawler_{task_name}" \
+--name $container_name \
 -e ROCKETSCRAPE_API_KEY=${ROCKETSCRAPE_API_KEY} \
-apricoot/crawler:latest "{task_name}"
+apricoot/crawler:latest "$task_name"
 
+docker logs -f $container_name
