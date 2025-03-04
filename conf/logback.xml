@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="30 seconds">
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-    <property name="LOG_FILE" value="./data/logs/application.log" />
+    <property name="LOG_FILE" value="./conf/application.log" />
     <include resource="org/springframework/boot/logging/logback/file-appender.xml" />
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
     <root level="INFO">
