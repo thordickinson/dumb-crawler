@@ -1,9 +1,9 @@
 package com.thordickinson.dumbcrawler.services.storage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.thordickinson.dumbcrawler.api.CrawlingResult;
 import com.thordickinson.dumbcrawler.api.CrawlingSessionContext;
-import org.apache.hadoop.shaded.org.codehaus.jackson.map.ObjectMapper;
-import org.apache.hadoop.shaded.org.codehaus.jackson.map.SerializationConfig;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.zip.GZIPOutputStream;
 @Service
 public class GZipStorageManager extends AbstractStorageManager {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationConfig.Feature.INDENT_OUTPUT);
+    private static final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     public GZipStorageManager() {
         super("storage");
     }
