@@ -1,0 +1,6 @@
+#!/bin/bash
+
+./mvnw package -DskipTests
+
+docker build -t apricoot/crawler .
+
