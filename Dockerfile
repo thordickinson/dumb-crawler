@@ -20,6 +20,8 @@ FROM eclipse-temurin:21-jdk-jammy
 # Establecer el directorio de trabajo en la imagen final
 WORKDIR /app
 
+env DOCKER_USER_HOME="/root"
+
 # Copiar el archivo JAR desde la etapa de compilación
 COPY --from=build /app/target/crawler.jar crawler.jar
 COPY ./conf/logback.xml ./conf/logback.xml

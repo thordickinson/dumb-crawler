@@ -56,8 +56,11 @@ public class CrawlingSessionContext {
 
     public CrawlingSessionContext(String jobId) {
         this.jobId = jobId;
-        final var home = System.getProperty("user.home", System.getenv("HOME"));
-        System.out.println(home);
+        var home = System.getProperty("user.home");
+        if("/".equals(home)){
+            // Probablemente está corriendo en docker
+            home = System.getenv("DOCKER_USER_HOME");
+        }
         this.jobOutputDir = Paths.get(home,".apricoot", "crawler", jobId);
         final var sessionIdOptional = getLatestSession(jobOutputDir);
         this.isNewSession = sessionIdOptional.isEmpty();
