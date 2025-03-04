@@ -22,6 +22,7 @@ WORKDIR /app
 
 # Copiar el archivo JAR desde la etapa de compilación
 COPY --from=build /app/target/crawler.jar crawler.jar
+COPY ./conf/logback.xml ./conf/logback.xml
 
 # Comando por defecto para ejecutar la aplicación
 ENTRYPOINT ["java", "-jar", "crawler.jar"]
