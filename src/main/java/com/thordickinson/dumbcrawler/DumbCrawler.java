@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -90,7 +91,12 @@ public class DumbCrawler implements Runnable {
 
     private void handleCrawlingException(CrawlingException ex){
         logger.warn("Error crawling page: {}", ex.getTask().taskId());
-        sessionContext.increaseCounter("ERROR_" + ex.getErrorCode());
+        var code = ex.getErrorCode();
+        final var cause = ex.getCause();
+        if(cause != null){
+            sessionContext.increaseCounter("EXCEPTION_" + cause.getClass().getSimpleName());
+        }
+        sessionContext.increaseCounter("ERROR_" + code);
         urlStore.markTasAsFailed(ex.getTask(), ex);
     }
 
@@ -109,7 +115,6 @@ public class DumbCrawler implements Runnable {
         } catch (CrawlingException ex) {
             handleCrawlingException(ex);
         } catch (Throwable ex) {
-            logger.error("An unexpected error was caught: {} -> {}", wrapper.task().taskId(), wrapper.task().url(), ex);
             var exception = ex instanceof ExecutionException && ex.getCause() != null? ex.getCause() : ex;
             if(exception instanceof  CrawlingException){
                 handleCrawlingException((CrawlingException) exception);
@@ -117,6 +122,7 @@ public class DumbCrawler implements Runnable {
             }
             sessionContext.increaseCounter("ERROR_" + exception.getClass().getSimpleName());
             urlStore.markTasAsFailed(wrapper.task(), ex);
+            logger.error("An unexpected error was caught: {} -> {}", wrapper.task().taskId(), wrapper.task().url(), ex);
         }
     }
 
