@@ -30,7 +30,7 @@ public class SimpleHttpRenderer extends AbstractCrawlingComponent implements Htm
         URL obj = URI.create(transformUrl(task.url())).toURL();
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
         con.setConnectTimeout(10_000);
-        con.setReadTimeout(60_000);
+        con.setReadTimeout(30_000);
 
         //add request header
         con.setRequestProperty("User-Agent", "Mozilla/5.0");
