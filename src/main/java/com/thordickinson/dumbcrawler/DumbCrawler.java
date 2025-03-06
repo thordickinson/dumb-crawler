@@ -273,6 +273,10 @@ public class DumbCrawler implements Runnable {
 
         int toSchedule = maxQueuedTasks - size;
         var urls = urlStore.getUnvisited(toSchedule);
+        urls = urls.stream().map(url -> {
+            final var tags = urlTagger.tagUrls(url.url());
+            return url.withTags(tags);
+        }).filter(task -> linkFilter.isURLAllowed(task, sessionContext)).toList();
         if (urls.isEmpty() && runningTasks.isEmpty()) {
             logger.warn("No more urls to schedule and no threads are running.");
             sessionContext.end();
