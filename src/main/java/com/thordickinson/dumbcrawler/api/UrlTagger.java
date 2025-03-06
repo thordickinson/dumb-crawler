@@ -42,7 +42,7 @@ public class UrlTagger extends AbstractCrawlingComponent {
                .filter(e -> expressionEvaluator.evaluateBoolean(e.getValue(), url))
                .map(Map.Entry::getKey)
                .toArray(String[]::new);
-        final var resolvedTags = tags.length != 0? tags : new String[]{ OTHER_TAG }
+        final var resolvedTags = tags.length != 0? tags : new String[]{ OTHER_TAG };
         logger.debug("Tagging url: {}, {}", url, resolvedTags);
         return resolvedTags;
     }
