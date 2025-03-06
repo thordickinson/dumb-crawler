@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * This component is responsible for tagging URLs based on a set of provided URL expressions.
- * @see UrlExpressionEvaluator for supported URL expressions.
+ * @see URLExpressionEvaluator for supported URL expressions.
  */
 @Service
 public class UrlTagger extends AbstractCrawlingComponent {
@@ -42,7 +42,9 @@ public class UrlTagger extends AbstractCrawlingComponent {
                .filter(e -> expressionEvaluator.evaluateBoolean(e.getValue(), url))
                .map(Map.Entry::getKey)
                .toArray(String[]::new);
-        return tags.length != 0? tags : new String[]{ OTHER_TAG };
+        final var resolvedTags = tags.length != 0? tags : new String[]{ OTHER_TAG }
+        logger.debug("Tagging url: {}, {}", url, resolvedTags);
+        return resolvedTags;
     }
 
 }
