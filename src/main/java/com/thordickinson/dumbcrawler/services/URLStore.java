@@ -169,13 +169,14 @@ public class URLStore {
     }
 
     private void markProcessed(CrawlingTask task, int status, String error){
-        var sql = "UPDATE links SET status = ?, completed_at = CURRENT_TIMESTAMP, error = ?, attempt_count = ? WHERE hash = ?";
+        var tags = String.join(",", task.tags());
+        var sql = "UPDATE links SET status = ?, tags = ?, completed_at = CURRENT_TIMESTAMP, error = ?, attempt_count = ? WHERE hash = ?";
         var attempt = task.attempt() + 1;
         if(attempt >= maxAttemptCount){
             context.increaseCounter("MAX_ATTEMPT_COUNT_REACHED");
             logger.warn("Max attempt count reached for url: {}", task.url());
         }
-        var updated = getConnection().update(sql, status, error, attempt, task.urlId());
+        var updated = getConnection().update(sql, status, tags, error, attempt, task.urlId());
         if(updated != 1){
             logger.warn("Unexpected update count {}", updated);
         }
